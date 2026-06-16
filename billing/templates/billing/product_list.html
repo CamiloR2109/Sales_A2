@@ -2,10 +2,140 @@
 {% block title %}Products{% endblock %}
 {% block content %}
 <h2>Products</h2>
-<a href="{% url 'billing:product_create' %}" class="btn btn-primary mb-3">+ New Product</a>
+<a href="{% url 'billing:product_create' %}" class="btn btn-primary mb-3"><i class="bi bi-plus-circle"></i> + New Product</a>
+<a href="?export=excel{% if query_string %}&{{ query_string }}{% endif %}" class="btn btn-success mb-3 ms-2">
+  <i class="bi bi-file-earmark-excel"></i> Exportar a Excel
+</a>
+<a href="?export=pdf{% if query_string %}&{{ query_string }}{% endif %}" class="btn btn-danger mb-3 ms-2">
+  <i class="bi bi-file-earmark-pdf"></i> Exportar a PDF
+</a>
+
+<!-- ═══════════════ FILTROS DE BÚSQUEDA ═══════════════ -->
+<div class="card mb-4">
+  <div class="card-header bg-secondary text-white">
+    <i class="bi bi-funnel"></i> Search Filters
+  </div>
+  <div class="card-body">
+    <form method="get" action="{% url 'billing:product_list' %}">
+      <div class="row g-3">
+
+        <!-- Nombre (texto) -->
+        <div class="col-md-4">
+          <label for="filter-name" class="form-label">Name</label>
+          <input type="text" id="filter-name" name="name" class="form-control"
+                 placeholder="Search by name..."
+                 value="{{ current_filters.name }}">
+        </div>
+
+        <!-- Marca (select FK) -->
+        <div class="col-md-4">
+          <label for="filter-brand" class="form-label">Brand</label>
+          <select id="filter-brand" name="brand" class="form-select">
+            <option value="">-- All Brands --</option>
+            {% for b in brands %}
+              <option value="{{ b.id }}" {% if current_filters.brand == b.id|stringformat:"d" %}selected{% endif %}>
+                {{ b.name }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- Grupo (select FK) -->
+        <div class="col-md-4">
+          <label for="filter-group" class="form-label">Group</label>
+          <select id="filter-group" name="group" class="form-select">
+            <option value="">-- All Groups --</option>
+            {% for g in groups %}
+              <option value="{{ g.id }}" {% if current_filters.group == g.id|stringformat:"d" %}selected{% endif %}>
+                {{ g.name }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- Proveedor (select M2M) -->
+        <div class="col-md-4">
+          <label for="filter-supplier" class="form-label">Supplier</label>
+          <select id="filter-supplier" name="supplier" class="form-select">
+            <option value="">-- All Suppliers --</option>
+            {% for s in suppliers %}
+              <option value="{{ s.id }}" {% if current_filters.supplier == s.id|stringformat:"d" %}selected{% endif %}>
+                {{ s.name }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- Precio mínimo (number decimal) -->
+        <div class="col-md-2">
+          <label for="filter-price-min" class="form-label">Price Min ($)</label>
+          <input type="number" id="filter-price-min" name="price_min" class="form-control"
+                 step="0.01" min="0" placeholder="0.00"
+                 value="{{ current_filters.price_min }}">
+        </div>
+
+        <!-- Precio máximo (number decimal) -->
+        <div class="col-md-2">
+          <label for="filter-price-max" class="form-label">Price Max ($)</label>
+          <input type="number" id="filter-price-max" name="price_max" class="form-control"
+                 step="0.01" min="0" placeholder="999.99"
+                 value="{{ current_filters.price_max }}">
+        </div>
+
+        <!-- Stock mínimo (number entero) -->
+        <div class="col-md-2">
+          <label for="filter-stock-min" class="form-label">Stock Min</label>
+          <input type="number" id="filter-stock-min" name="stock_min" class="form-control"
+                 step="1" min="0" placeholder="0"
+                 value="{{ current_filters.stock_min }}">
+        </div>
+
+        <!-- Stock máximo (number entero) -->
+        <div class="col-md-2">
+          <label for="filter-stock-max" class="form-label">Stock Max</label>
+          <input type="number" id="filter-stock-max" name="stock_max" class="form-control"
+                 step="1" min="0" placeholder="999"
+                 value="{{ current_filters.stock_max }}">
+        </div>
+
+        <!-- Estado activo (select boolean) -->
+        <div class="col-md-4">
+          <label for="filter-active" class="form-label">Status</label>
+          <select id="filter-active" name="is_active" class="form-select">
+            <option value="">-- All --</option>
+            <option value="true" {% if current_filters.is_active == "true" %}selected{% endif %}>Active</option>
+            <option value="false" {% if current_filters.is_active == "false" %}selected{% endif %}>Inactive</option>
+          </select>
+        </div>
+
+      </div>
+
+      <!-- Botones -->
+      <div class="mt-3">
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-search"></i> Search
+        </button>
+        <a href="{% url 'billing:product_list' %}" class="btn btn-outline-secondary">
+          <i class="bi bi-x-circle"></i> Clear Filters
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ═══════════════ TABLA DE RESULTADOS ═══════════════ -->
 <table class="table table-striped table-hover">
   <thead class="table-dark">
-    <tr><th>Name</th><th>Brand</th><th>Group</th><th>Price</th><th>Stock</th><th>Suppliers</th><th>Actions</th></tr>
+    <tr>
+      <th>Name</th>
+      <th>Brand</th>
+      <th>Group</th>
+      <th>Price</th>
+      <th>Stock</th>
+      <th>Active</th>
+      <th>Suppliers</th>
+      <th>Actions</th>
+    </tr>
   </thead>
   <tbody>
     {% for item in items %}
@@ -14,7 +144,20 @@
       <td>{{ item.brand.name }}</td>
       <td>{{ item.group.name }}</td>
       <td>${{ item.unit_price }}</td>
-      <td>{{ item.stock }}</td>
+      <td>
+        {% if item.stock <= 5 %}
+          <span class="badge bg-danger">{{ item.stock }}</span>
+        {% else %}
+          {{ item.stock }}
+        {% endif %}
+      </td>
+      <td>
+        {% if item.is_active %}
+          <span class="badge bg-success">Active</span>
+        {% else %}
+          <span class="badge bg-secondary">Inactive</span>
+        {% endif %}
+      </td>
       <td>
         {% for s in item.suppliers.all %}
           <span class="badge bg-info">{{ s.name }}</span>
@@ -28,8 +171,59 @@
       </td>
     </tr>
     {% empty %}
-    <tr><td colspan="7" class="text-center">No products.</td></tr>
+    <tr><td colspan="8" class="text-center">No products found.</td></tr>
     {% endfor %}
   </tbody>
 </table>
+
+<!-- ═══════════════ PAGINACIÓN ═══════════════ -->
+{% if is_paginated %}
+<nav aria-label="Product pagination">
+  <ul class="pagination justify-content-center">
+
+    <!-- Primera página -->
+    {% if page_obj.has_previous %}
+    <li class="page-item">
+      <a class="page-link" href="?page=1{% if query_string %}&{{ query_string }}{% endif %}">&laquo; First</a>
+    </li>
+    <li class="page-item">
+      <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if query_string %}&{{ query_string }}{% endif %}">&lsaquo; Prev</a>
+    </li>
+    {% else %}
+    <li class="page-item disabled"><span class="page-link">&laquo; First</span></li>
+    <li class="page-item disabled"><span class="page-link">&lsaquo; Prev</span></li>
+    {% endif %}
+
+    <!-- Números de página -->
+    {% for num in page_obj.paginator.page_range %}
+      {% if page_obj.number == num %}
+        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+      {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}
+        <li class="page-item">
+          <a class="page-link" href="?page={{ num }}{% if query_string %}&{{ query_string }}{% endif %}">{{ num }}</a>
+        </li>
+      {% endif %}
+    {% endfor %}
+
+    <!-- Siguiente y última -->
+    {% if page_obj.has_next %}
+    <li class="page-item">
+      <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if query_string %}&{{ query_string }}{% endif %}">Next &rsaquo;</a>
+    </li>
+    <li class="page-item">
+      <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if query_string %}&{{ query_string }}{% endif %}">Last &raquo;</a>
+    </li>
+    {% else %}
+    <li class="page-item disabled"><span class="page-link">Next &rsaquo;</span></li>
+    <li class="page-item disabled"><span class="page-link">Last &raquo;</span></li>
+    {% endif %}
+
+  </ul>
+  <p class="text-center text-muted">
+    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+    &mdash; {{ page_obj.paginator.count }} product{{ page_obj.paginator.count|pluralize }} total
+  </p>
+</nav>
+{% endif %}
+
 {% endblock %}

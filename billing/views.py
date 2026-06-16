@@ -7,7 +7,7 @@ from django.urls import reverse_lazy
 from django.contrib.auth import login
 from .models import *
 from .forms import SignUpForm, BrandForm
-from shared.mixins import StaffRequiredMixin
+from shared.mixins import StaffRequiredMixin, ExportMixin
 from shared.decorators import audit_action
 from .forms import SignUpForm, BrandForm, InvoiceForm, InvoiceDetailFormSet
 from decimal import Decimal
@@ -136,8 +136,105 @@ class SupplierDeleteView(LoginRequiredMixin, DeleteView):
     model = Supplier; template_name = 'billing/supplier_confirm_delete.html'; success_url = reverse_lazy('billing:supplier_list')
 
 # === PRODUCT (CBV) ===
-class ProductListView(LoginRequiredMixin, ListView):
-    model = Product; template_name = 'billing/product_list.html'; context_object_name = 'items'
+class ProductListView(LoginRequiredMixin, ExportMixin, ListView):
+    model = Product
+    template_name = 'billing/product_list.html'
+    context_object_name = 'items'
+    paginate_by = 10
+
+    # Configuración de exportación
+    export_filename = 'listado_productos'
+    export_fields = ['name', 'brand.name', 'group.name', 'unit_price', 'stock', 'is_active', 'suppliers']
+    export_headers = ['Nombre', 'Marca', 'Grupo', 'Precio Unitario', 'Stock', 'Activo', 'Proveedores']
+
+    def get_queryset(self):
+        qs = Product.objects.select_related('brand', 'group').prefetch_related('suppliers').all()
+        g = self.request.GET
+
+        # --- Filtro por nombre (texto parcial, case-insensitive) ---
+        name = g.get('name', '').strip()
+        if name:
+            qs = qs.filter(name__icontains=name)
+
+        # --- Filtro por marca (FK — select) ---
+        brand = g.get('brand', '').strip()
+        if brand:
+            qs = qs.filter(brand_id=brand)
+
+        # --- Filtro por grupo (FK — select) ---
+        group = g.get('group', '').strip()
+        if group:
+            qs = qs.filter(group_id=group)
+
+        # --- Filtro por proveedor (M2M — select) ---
+        supplier = g.get('supplier', '').strip()
+        if supplier:
+            qs = qs.filter(suppliers__id=supplier)
+
+        # --- Filtro por precio mínimo (decimal) ---
+        price_min = g.get('price_min', '').strip()
+        if price_min:
+            try:
+                qs = qs.filter(unit_price__gte=price_min)
+            except (ValueError, TypeError):
+                pass
+
+        # --- Filtro por precio máximo (decimal) ---
+        price_max = g.get('price_max', '').strip()
+        if price_max:
+            try:
+                qs = qs.filter(unit_price__lte=price_max)
+            except (ValueError, TypeError):
+                pass
+
+        # --- Filtro por stock mínimo (entero) ---
+        stock_min = g.get('stock_min', '').strip()
+        if stock_min:
+            try:
+                qs = qs.filter(stock__gte=int(stock_min))
+            except (ValueError, TypeError):
+                pass
+
+        # --- Filtro por stock máximo (entero) ---
+        stock_max = g.get('stock_max', '').strip()
+        if stock_max:
+            try:
+                qs = qs.filter(stock__lte=int(stock_max))
+            except (ValueError, TypeError):
+                pass
+
+        # --- Filtro por estado activo (boolean — select) ---
+        is_active = g.get('is_active', '').strip()
+        if is_active in ('true', 'false'):
+            qs = qs.filter(is_active=(is_active == 'true'))
+
+        return qs.distinct()
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        g = self.request.GET
+        # Listas para los <select> de los filtros
+        context['brands'] = Brand.objects.filter(is_active=True).order_by('name')
+        context['groups'] = ProductGroup.objects.filter(is_active=True).order_by('name')
+        context['suppliers'] = Supplier.objects.filter(is_active=True).order_by('name')
+        # Preservar los valores actuales de los filtros en el template
+        context['current_filters'] = {
+            'name': g.get('name', ''),
+            'brand': g.get('brand', ''),
+            'group': g.get('group', ''),
+            'supplier': g.get('supplier', ''),
+            'price_min': g.get('price_min', ''),
+            'price_max': g.get('price_max', ''),
+            'stock_min': g.get('stock_min', ''),
+            'stock_max': g.get('stock_max', ''),
+            'is_active': g.get('is_active', ''),
+        }
+        # Query string sin "page" para usar en la paginación
+        query_params = g.copy()
+        query_params.pop('page', None)
+        context['query_string'] = query_params.urlencode()
+        return context
+    
 class ProductCreateView(LoginRequiredMixin, CreateView):
     model = Product; fields = ['name','description','brand','group','suppliers','unit_price','stock','is_active']; template_name = 'billing/product_form.html'; success_url = reverse_lazy('billing:product_list')
 class ProductUpdateView(LoginRequiredMixin, UpdateView):
