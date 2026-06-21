@@ -1,0 +1,66 @@
+{% extends 'billing/base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="card shadow">
+  <div class="card-header bg-success text-white"><h4>{{ title }}</h4></div>
+  <div class="card-body">
+    <form method="post">
+      {% csrf_token %}
+      
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <label class="form-label fw-bold">Supplier</label>
+          {{ form.supplier }}
+          {% for error in form.supplier.errors %}
+          <div class="text-danger">{{ error }}</div>
+          {% endfor %}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-bold">Document Number</label>
+          {{ form.document_number }}
+          {% for error in form.document_number.errors %}
+          <div class="text-danger">{{ error }}</div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <h5 class="mt-4 mb-3">Purchase Details</h5>
+      {{ formset.management_form }}
+
+      <table class="table table-bordered">
+        <thead class="table-secondary">
+          <tr>
+            <th>Product</th>
+            <th>Quantity</th>
+            <th>Unit Cost</th>
+            <th>Delete</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for detail_form in formset %}
+          <tr>
+            <td>{{ detail_form.product }}</td>
+            <td>{{ detail_form.quantity }}</td>
+            <td>{{ detail_form.unit_cost }}</td>
+            <td class="text-center">
+              {% if detail_form.instance.pk %}
+                {{ detail_form.DELETE }}
+              {% endif %}
+            </td>
+            {{ detail_form.id }}
+            {% for error in detail_form.errors.values %}
+              <td colspan="4" class="text-danger">{{ error }}</td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <button type="submit" class="btn btn-success">
+        Save Purchase
+      </button>
+      <a href="{% url 'purchasing:purchase_list' %}" class="btn btn-secondary">Cancel</a>
+    </form>
+  </div>
+</div>
+{% endblock %}
