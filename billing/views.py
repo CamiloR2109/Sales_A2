@@ -11,6 +11,7 @@ from shared.mixins import StaffRequiredMixin, ExportMixin
 from shared.decorators import audit_action
 from .forms import SignUpForm, BrandForm, InvoiceForm, InvoiceDetailFormSet
 from decimal import Decimal
+from django.db.models import F
 
 
 # === HOME (Página principal) ===
@@ -275,6 +276,10 @@ def invoice_create(request):
             # Asignar la factura al formset y guardar detalles
             formset.instance = invoice
             details = formset.save()
+
+            # Actualizar stock restando la cantidad vendida
+            for d in details:
+                Product.objects.filter(pk=d.product_id).update(stock=F('stock') - d.quantity)
 
             # Calcular totales
             subtotal = sum(d.subtotal for d in invoice.details.all())

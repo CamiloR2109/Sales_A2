@@ -1,6 +1,6 @@
-# 🧾 Sales & Billing System (Sistema de Ventas y Facturación)
+# 🧾 Sales, Billing & Purchasing System (Sistema de Ventas, Facturación y Compras)
 
-Sistema web de gestión de ventas y facturación construido con **Django 6.0** y **Python 3.14**. Permite administrar marcas, productos, proveedores, clientes y generar facturas con cálculo automático de IVA (15%).
+Sistema web de gestión integral construido con **Django 6.0** y **Python 3.14**. Permite administrar marcas, productos, proveedores, clientes, generar facturas de venta y registrar comprobantes de compras, con cálculo automático de impuestos (15%).
 
 ---
 
@@ -26,7 +26,8 @@ Sistema web de gestión de ventas y facturación construido con **Django 6.0** y
 - **Proveedores** — Registro de proveedores con relación muchos-a-muchos con productos.
 - **Productos** — Catálogo con marca, grupo, precio, stock y proveedores asociados.
 - **Clientes** — Registro con validación de cédula/RUC ecuatoriano (algoritmo módulo 10) y perfil extendido (tipo de contribuyente, condiciones de pago, límite de crédito).
-- **Facturación** — Creación de facturas con múltiples líneas de detalle (formsets), cálculo automático de subtotales e IVA (15%).
+- **Facturación (Ventas)** — Creación de facturas con múltiples líneas de detalle (formsets), cálculo automático de subtotales e IVA (15%).
+- **Compras (Adquisiciones)** — Módulo espejo para registrar ingresos de mercadería desde proveedores, calculando subtotales por costo unitario y sumando IVA (15%).
 - **Dashboard** — Página principal con resumen de totales, últimas facturas y alertas de bajo stock.
 - **Autenticación** — Registro de usuarios, login/logout integrado con `django.contrib.auth`.
 - **Autorización por roles** — Eliminación de registros restringida a usuarios staff (`StaffRequiredMixin`).
@@ -45,13 +46,16 @@ El proyecto sigue el patrón **MVT (Model-View-Template)** de Django con una est
 │          (Settings, URLs raíz, WSGI)            │
 ├─────────────────────────────────────────────────┤
 │                  billing/                       │
-│    (App principal: Models, Views, Forms, URLs)  │
+│    (App de Ventas: Models, Views, Forms, URLs)  │
+├─────────────────────────────────────────────────┤
+│                 purchasing/                     │
+│    (App de Compras: Models, Views, Forms, URLs) │
 ├─────────────────────────────────────────────────┤
 │                  shared/                        │
 │   (Decoradores, Mixins, Validadores reutiliz.)  │
 ├─────────────────────────────────────────────────┤
 │               templates/                        │
-│       (Templates globales y por módulo)          │
+│       (Templates globales y por módulo)         │
 └─────────────────────────────────────────────────┘
 ```
 
@@ -79,6 +83,9 @@ erDiagram
     Customer ||--o{ Invoice : "compra"
     Invoice ||--o{ InvoiceDetail : "contiene"
     Product ||--o{ InvoiceDetail : "vendido en"
+    Supplier ||--o{ Purchase : "vende"
+    Purchase ||--o{ PurchaseDetail : "contiene"
+    Product ||--o{ PurchaseDetail : "adquirido en"
 
     Brand {
         int id PK
@@ -152,6 +159,26 @@ erDiagram
         decimal unit_price
         decimal subtotal
     }
+
+    Purchase {
+        int id PK
+        int supplier_id FK
+        string document_number
+        datetime purchase_date
+        decimal subtotal
+        decimal tax
+        decimal total
+        bool is_active
+    }
+
+    PurchaseDetail {
+        int id PK
+        int purchase_id FK
+        int product_id FK
+        int quantity
+        decimal unit_cost
+        decimal subtotal
+    }
 ```
 
 ---
@@ -183,6 +210,13 @@ Ventas/
 │   │       ├── login.html
 │   │       └── signup.html
 │   └── migrations/             # Migraciones de la base de datos
+│
+├── purchasing/                 # App secundaria de compras (espejo)
+│   ├── models.py               # Modelos Purchase y PurchaseDetail
+│   ├── views.py                # Vistas para gestión de compras
+│   ├── forms.py                # PurchaseForm y PurchaseDetailFormSet
+│   ├── urls.py                 # Rutas con namespace 'purchasing'
+│   └── templates/purchasing/   # Templates de CRUD de compras
 │
 ├── shared/                     # Módulo de utilidades compartidas
 │   ├── decorators.py           # @audit_action — logging de acciones
@@ -267,8 +301,10 @@ Abrir en el navegador: **http://127.0.0.1:8000/**
 | `/suppliers/` | Listado de proveedores |
 | `/products/` | Listado de productos |
 | `/customers/` | Listado de clientes |
-| `/invoices/` | Listado de facturas |
-| `/invoices/create/` | Crear nueva factura con líneas de detalle |
+| `/invoices/` | Listado de facturas de venta |
+| `/invoices/create/` | Crear nueva factura de venta |
+| `/purchasing/invoices/` | Listado de facturas de compra |
+| `/purchasing/invoices/create/` | Crear nueva factura de compra |
 | `/signup/` | Registro de nuevos usuarios |
 | `/accounts/login/` | Inicio de sesión |
 | `/admin/` | Panel de administración de Django |
@@ -311,6 +347,14 @@ Creación de facturas con:
 - Cálculo automático de subtotales por línea
 - **IVA 15%** aplicado automáticamente sobre el subtotal
 - Vista de detalle con desglose completo
+
+### 🛒 Compras (Purchasing)
+Módulo espejo a facturación, encargado de registrar adquisiciones a proveedores:
+- Selección de proveedor y número de documento original
+- Múltiples líneas de detalle con costo unitario (en lugar de precio de venta)
+- Cálculo interno de subtotales en el modelo `PurchaseDetail`
+- Sumatoria de totales e **IVA 15%** calculados automáticamente en la vista
+- Listado y detalle optimizados con `select_related` y `prefetch_related`
 
 ---
 
