@@ -2,13 +2,17 @@ from django.urls import path
 from . import views
 app_name = 'billing'
 urlpatterns = [
-    path('', views.home, name='home'),  
-    path('signup/', views.SignUpView.as_view(), name='signup'),
+    path('', views.home, name='home'),
     # Brand (FBV)
     path('brands/', views.brand_list, name='brand_list'),
     path('brands/create/', views.brand_create, name='brand_create'),
     path('brands/<int:pk>/edit/', views.brand_update, name='brand_update'),
     path('brands/<int:pk>/delete/', views.brand_delete, name='brand_delete'),
+    # Warehouse (FBv)
+    path('warehouses/', views.warehouse_list, name='warehouse_list'),
+    path('warehouses/create/', views.warehouse_create, name='warehouse_create'),
+    path('warehouses/<int:pk>/edit/', views.warehouse_update, name='warehouse_update'),
+    path('warehouses/<int:pk>/delete/', views.warehouse_delete, name='warehouse_delete'),
     # ProductGroup
     path('groups/', views.ProductGroupListView.as_view(), name='productgroup_list'),
     path('groups/create/', views.ProductGroupCreateView.as_view(), name='productgroup_create'),

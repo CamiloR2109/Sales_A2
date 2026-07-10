@@ -1,26 +1,281 @@
 {% extends 'billing/base.html' %}
-{% block title %}Product{% endblock %}
+{% block title %}{{ title|default:"Product" }}{% endblock %}
 {% block content %}
-<div class="row justify-content-center">
-  <div class="col-md-8">
-    <div class="card shadow">
-      <div class="card-header bg-primary text-white"><h4>Product</h4></div>
-      <div class="card-body">
-        <form method="post">
-          {% csrf_token %}
-          {% for field in form %}
-          <div class="mb-3">
-            <label class="form-label fw-bold">{{ field.label }}</label>
-            {{ field }}
-            <small class="text-muted">{{ field.help_text }}</small>
-            {% for error in field.errors %}<div class="text-danger">{{ error }}</div>{% endfor %}
-          </div>
-          {% endfor %}
-          <button type="submit" class="btn btn-primary">Save</button>
-          <a href="{% url 'billing:product_list' %}" class="btn btn-secondary">Cancel</a>
-        </form>
-      </div>
+<div class="container py-4">
+
+  {# ═══════ ENCABEZADO ═══════ #}
+  <div class="d-flex align-items-center mb-4">
+    <i class="bi bi-box-seam fs-2 text-primary me-3"></i>
+    <div>
+      <h2 class="mb-0">{% if object %}Editar Producto{% else %}Nuevo Producto{% endif %}</h2>
+      <small class="text-muted">Completa la información del producto</small>
     </div>
   </div>
+
+  {# ═══════ ERRORES GENERALES ═══════ #}
+  {% if form.non_field_errors %}
+  <div class="alert alert-danger alert-dismissible fade show" role="alert">
+    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+    {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endif %}
+
+  <form method="post" enctype="multipart/form-data" novalidate>
+    {% csrf_token %}
+    <div class="row g-4">
+
+      {# ══════════════════════════════════════════════════ #}
+      {# COLUMNA IZQUIERDA — Información del Producto      #}
+      {# ══════════════════════════════════════════════════ #}
+      <div class="col-lg-7">
+        <div class="card shadow-sm border-0">
+          <div class="card-header bg-primary bg-gradient text-white">
+            <i class="bi bi-info-circle me-2"></i>Información del Producto
+          </div>
+          <div class="card-body">
+
+            {# Nombre #}
+            <div class="mb-3">
+              <label for="id_name" class="form-label fw-semibold">
+                <i class="bi bi-tag me-1 text-primary"></i>Nombre del Producto
+              </label>
+              {{ form.name }}
+              <div class="form-text">{{ form.name.help_text }}</div>
+              {% for error in form.name.errors %}<div class="text-danger small mt-1"><i class="bi bi-x-circle me-1"></i>{{ error }}</div>{% endfor %}
+            </div>
+
+            {# Descripción #}
+            <div class="mb-3">
+              <label for="id_description" class="form-label fw-semibold">
+                <i class="bi bi-card-text me-1 text-primary"></i>Descripción
+              </label>
+              {{ form.description }}
+              <div class="form-text">{{ form.description.help_text }}</div>
+              {% for error in form.description.errors %}<div class="text-danger small mt-1"><i class="bi bi-x-circle me-1"></i>{{ error }}</div>{% endfor %}
+            </div>
+
+            {# Marca y Categoría (2 cols) #}
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label for="id_brand" class="form-label fw-semibold">
+                  <i class="bi bi-award me-1 text-primary"></i>Marca
+                </label>
+                {{ form.brand }}
+                <div class="form-text">{{ form.brand.help_text }}</div>
+                {% for error in form.brand.errors %}<div class="text-danger small mt-1"><i class="bi bi-x-circle me-1"></i>{{ error }}</div>{% endfor %}
+              </div>
+              <div class="col-md-6">
+                <label for="id_group" class="form-label fw-semibold">
+                  <i class="bi bi-collection me-1 text-primary"></i>Categoría
+                </label>
+                {{ form.group }}
+                <div class="form-text">{{ form.group.help_text }}</div>
+                {% for error in form.group.errors %}<div class="text-danger small mt-1"><i class="bi bi-x-circle me-1"></i>{{ error }}</div>{% endfor %}
+              </div>
+            </div>
+
+            {# Precio y Stock (2 cols) #}
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label for="id_unit_price" class="form-label fw-semibold">
+                  <i class="bi bi-currency-dollar me-1 text-success"></i>Precio Unitario
+                </label>
+                <div class="input-group">
+                  <span class="input-group-text">$</span>
+                  {{ form.unit_price }}
+                </div>
+                <div class="form-text">{{ form.unit_price.help_text }}</div>
+                {% for error in form.unit_price.errors %}<div class="text-danger small mt-1"><i class="bi bi-x-circle me-1"></i>{{ error }}</div>{% endfor %}
+              </div>
+              <div class="col-md-6">
+                <label for="id_stock" class="form-label fw-semibold">
+                  <i class="bi bi-boxes me-1 text-warning"></i>Stock
+                </label>
+                {{ form.stock }}
+                <div class="form-text">{{ form.stock.help_text }}</div>
+                {% for error in form.stock.errors %}<div class="text-danger small mt-1"><i class="bi bi-x-circle me-1"></i>{{ error }}</div>{% endfor %}
+              </div>
+            </div>
+
+            {# Proveedores #}
+            <div class="mb-3">
+              <label for="id_suppliers" class="form-label fw-semibold">
+                <i class="bi bi-truck me-1 text-primary"></i>Proveedores
+              </label>
+              {{ form.suppliers }}
+              <div class="form-text">{{ form.suppliers.help_text }}</div>
+              {% for error in form.suppliers.errors %}<div class="text-danger small mt-1"><i class="bi bi-x-circle me-1"></i>{{ error }}</div>{% endfor %}
+            </div>
+
+            {# Activo #}
+            <div class="form-check form-switch mb-2">
+              {{ form.is_active }}
+              <label class="form-check-label fw-semibold" for="id_is_active">
+                <i class="bi bi-toggle-on me-1 text-primary"></i>Producto Activo
+              </label>
+              <div class="form-text">{{ form.is_active.help_text }}</div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      {# ══════════════════════════════════════════════════ #}
+      {# COLUMNA DERECHA — Imagen y Resumen                #}
+      {# ══════════════════════════════════════════════════ #}
+      <div class="col-lg-5">
+
+        {# Card: Imagen del Producto #}
+        <div class="card shadow-sm border-0 mb-4">
+          <div class="card-header bg-secondary bg-gradient text-white">
+            <i class="bi bi-image me-2"></i>Imagen del Producto
+          </div>
+          <div class="card-body text-center">
+            {# Vista previa de imagen #}
+            <div class="mb-3">
+              {% if object and object.image %}
+                <img id="imagePreview" src="{{ object.image.url }}"
+                     alt="{{ object.name }}"
+                     class="img-fluid rounded shadow-sm"
+                     style="max-height: 220px; object-fit: contain;">
+              {% else %}
+                <img id="imagePreview" src=""
+                     alt="Vista previa"
+                     class="img-fluid rounded shadow-sm d-none"
+                     style="max-height: 220px; object-fit: contain;">
+                <div id="imagePlaceholder" class="border rounded d-flex align-items-center justify-content-center bg-light"
+                     style="height: 180px;">
+                  <div class="text-muted text-center">
+                    <i class="bi bi-camera fs-1 d-block mb-2"></i>
+                    <span>Sin imagen seleccionada</span>
+                  </div>
+                </div>
+              {% endif %}
+            </div>
+            {{ form.image }}
+            <div class="form-text">{{ form.image.help_text }}</div>
+            {% for error in form.image.errors %}<div class="text-danger small mt-1"><i class="bi bi-x-circle me-1"></i>{{ error }}</div>{% endfor %}
+          </div>
+        </div>
+
+        {# Card: Resumen Financiero #}
+        <div class="card shadow-sm border-0">
+          <div class="card-header bg-success bg-gradient text-white">
+            <i class="bi bi-calculator me-2"></i>Resumen Financiero
+          </div>
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span class="text-muted"><i class="bi bi-currency-dollar me-1"></i>Precio Unitario:</span>
+              <span id="displayPrice" class="fw-semibold">$0.00</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span class="text-muted"><i class="bi bi-boxes me-1"></i>Stock Actual:</span>
+              <span id="displayStock" class="fw-semibold">0</span>
+            </div>
+            <hr>
+            <div class="d-flex justify-content-between align-items-center">
+              <span class="fw-bold fs-5"><i class="bi bi-wallet2 me-1 text-success"></i>Balance:</span>
+              <span id="displayBalance" class="fw-bold fs-4 text-success">$0.00</span>
+            </div>
+            <div class="form-text text-end mt-1">Balance = Precio × Stock</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    {# ═══════ BOTONES ═══════ #}
+    <div class="d-flex gap-2 mt-4 pt-3 border-top">
+      <button type="submit" class="btn btn-primary btn-lg px-4">
+        <i class="bi bi-check-circle me-2"></i>{% if object %}Actualizar{% else %}Guardar{% endif %}
+      </button>
+      <a href="{% url 'billing:product_list' %}" class="btn btn-outline-secondary btn-lg px-4">
+        <i class="bi bi-x-circle me-2"></i>Cancelar
+      </a>
+    </div>
+
+  </form>
 </div>
+
+{# ═══════════════════════════════════════════════════════ #}
+{# JAVASCRIPT — Vista previa de imagen + Balance dinámico  #}
+{# ═══════════════════════════════════════════════════════ #}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+  // --- Vista previa de imagen ---
+  const imageInput = document.getElementById('id_image');
+  const imagePreview = document.getElementById('imagePreview');
+  const imagePlaceholder = document.getElementById('imagePlaceholder');
+
+  if (imageInput) {
+    imageInput.addEventListener('change', function (e) {
+      const file = e.target.files[0];
+      if (file && file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = function (ev) {
+          imagePreview.src = ev.target.result;
+          imagePreview.classList.remove('d-none');
+          if (imagePlaceholder) imagePlaceholder.classList.add('d-none');
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  }
+
+  // --- Cálculo dinámico del balance ---
+  const priceInput = document.getElementById('id_unit_price');
+  const stockInput = document.getElementById('id_stock');
+  const displayPrice = document.getElementById('displayPrice');
+  const displayStock = document.getElementById('displayStock');
+  const displayBalance = document.getElementById('displayBalance');
+
+  function updateBalance() {
+    const price = parseFloat(priceInput.value) || 0;
+    const stock = parseInt(stockInput.value) || 0;
+    const balance = (price * stock).toFixed(2);
+
+    displayPrice.textContent = '$' + price.toFixed(2);
+    displayStock.textContent = stock;
+    displayBalance.textContent = '$' + balance;
+
+    // Resaltar visualmente el balance
+    displayBalance.classList.remove('text-success', 'text-danger', 'text-muted');
+    if (balance > 0) {
+      displayBalance.classList.add('text-success');
+    } else {
+      displayBalance.classList.add('text-muted');
+    }
+  }
+
+  if (priceInput && stockInput) {
+    priceInput.addEventListener('input', updateBalance);
+    stockInput.addEventListener('input', updateBalance);
+    // Calcular al cargar (para edición con valores previos)
+    updateBalance();
+  }
+
+  // --- Validación frontend del precio ---
+  if (priceInput) {
+    priceInput.addEventListener('blur', function () {
+      const val = parseFloat(this.value);
+      if (this.value !== '' && (isNaN(val) || val <= 0)) {
+        this.classList.add('is-invalid');
+        let feedback = this.parentNode.querySelector('.invalid-feedback');
+        if (!feedback) {
+          feedback = document.createElement('div');
+          feedback.className = 'invalid-feedback';
+          feedback.textContent = 'El precio unitario debe ser mayor que cero.';
+          this.parentNode.appendChild(feedback);
+        }
+      } else {
+        this.classList.remove('is-invalid');
+        const feedback = this.parentNode.querySelector('.invalid-feedback');
+        if (feedback) feedback.remove();
+      }
+    });
+  }
+});
+</script>
 {% endblock %}

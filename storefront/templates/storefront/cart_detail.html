@@ -1,0 +1,64 @@
+{% extends 'billing/base.html' %}
+
+{% block title %}Mi Carrito{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">Mi Carrito</h2>
+
+{% if cart %}
+<div class="table-responsive">
+  <table class="table align-middle">
+    <thead>
+      <tr>
+        <th>Producto</th>
+        <th>Precio</th>
+        <th>Cantidad</th>
+        <th>Subtotal</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in cart %}
+      <tr>
+        <td class="d-flex align-items-center gap-2">
+          {% if item.product.image %}
+          <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}" style="width:50px; height:50px; object-fit:cover;" class="rounded">
+          {% endif %}
+          {{ item.product.name }}
+        </td>
+        <td>${{ item.price }}</td>
+        <td style="width:120px;">
+          <form method="post" action="{% url 'storefront:cart_update' item.product.id %}" class="d-flex">
+            {% csrf_token %}
+            <input type="number" name="quantity" value="{{ item.quantity }}" min="1" max="{{ item.product.stock }}" class="form-control form-control-sm" style="width:70px;">
+            <button type="submit" class="btn btn-sm btn-outline-secondary ms-1">
+              <i class="bi bi-arrow-repeat"></i>
+            </button>
+          </form>
+        </td>
+        <td>${{ item.total_price }}</td>
+        <td>
+          <a href="{% url 'storefront:cart_remove' item.product.id %}" class="btn btn-sm btn-outline-danger">
+            <i class="bi bi-trash"></i>
+          </a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr>
+        <th colspan="3" class="text-end">Total a pagar</th>
+        <th colspan="2">${{ cart.get_total_price }}</th>
+      </tr>
+    </tfoot>
+  </table>
+</div>
+
+<a href="{% url 'storefront:catalog' %}" class="btn btn-outline-primary">
+  <i class="bi bi-arrow-left"></i> Seguir comprando
+</a>
+{% else %}
+<p class="text-muted">Tu carrito está vacío.</p>
+<a href="{% url 'storefront:catalog' %}" class="btn btn-primary">Ver catálogo</a>
+{% endif %}
+{% endblock %}

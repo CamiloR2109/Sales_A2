@@ -1,0 +1,204 @@
+/* ============================================================
+   Theme: soft neutral grays + muted accent palette
+   Overrides Bootstrap 5.3 defaults without touching templates.
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  /* --- accent colors (muted, harmonized with gray) --- */
+  --bs-primary:        #5C7A99;
+  --bs-primary-rgb:    92, 122, 153;
+  --bs-secondary:      #8A94A6;
+  --bs-secondary-rgb:  138, 148, 166;
+  --bs-success:        #6E9887;
+  --bs-success-rgb:    110, 152, 135;
+  --bs-info:           #6FA3AC;
+  --bs-info-rgb:       111, 163, 172;
+  --bs-warning:        #DDA85B;
+  --bs-warning-rgb:    221, 168, 91;
+  --bs-danger:         #C1666B;
+  --bs-danger-rgb:     193, 102, 107;
+  --bs-light:          #F4F5F7;
+  --bs-light-rgb:      244, 245, 247;
+  --bs-dark:           #3B4252;
+  --bs-dark-rgb:       59, 66, 82;
+
+  --bs-body-bg:        #F2F3F5;
+  --bs-body-color:     #33383F;
+  --bs-link-color:     #4E6883;
+  --bs-link-hover-color: #3E5468;
+
+  --bs-border-radius:    0.5rem;
+  --bs-border-radius-lg: 0.75rem;
+  --bs-border-radius-sm: 0.35rem;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background-color: var(--bs-body-bg);
+  color: var(--bs-body-color);
+}
+
+/* --- Navbar --- */
+.navbar.bg-dark,
+.navbar-dark.bg-dark {
+  background-color: #3B4252 !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .15);
+}
+.navbar-dark .navbar-nav .nav-link {
+  color: rgba(255, 255, 255, .78);
+}
+.navbar-dark .navbar-nav .nav-link:hover,
+.navbar-dark .navbar-nav .nav-link:focus {
+  color: #ffffff;
+}
+.navbar-dark .navbar-brand {
+  font-weight: 600;
+  letter-spacing: .02em;
+}
+.dropdown-menu {
+  border: none;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, .12);
+  border-radius: var(--bs-border-radius);
+}
+
+/* --- Cards --- */
+.card {
+  border: 1px solid #E6E8EB;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .06);
+}
+.card-header.bg-dark { background-color: #3B4252 !important; }
+.card-header.bg-secondary { background-color: #8A94A6 !important; }
+.card-header.bg-danger { background-color: #C1666B !important; }
+
+/* --- Buttons (component vars, since compiled bootstrap hardcodes hex here) --- */
+.btn { border-radius: var(--bs-border-radius); font-weight: 500; }
+
+.btn-primary {
+  --bs-btn-bg: #5C7A99; --bs-btn-border-color: #5C7A99;
+  --bs-btn-hover-bg: #4E6883; --bs-btn-hover-border-color: #4E6883;
+  --bs-btn-active-bg: #435870; --bs-btn-active-border-color: #435870;
+  --bs-btn-disabled-bg: #5C7A99; --bs-btn-disabled-border-color: #5C7A99;
+  --bs-btn-focus-shadow-rgb: 92, 122, 153;
+}
+.btn-secondary,
+.btn-outline-secondary:hover {
+  --bs-btn-bg: #8A94A6; --bs-btn-border-color: #8A94A6;
+  --bs-btn-hover-bg: #767F90; --bs-btn-hover-border-color: #767F90;
+  --bs-btn-active-bg: #6C7688; --bs-btn-active-border-color: #6C7688;
+}
+.btn-outline-secondary {
+  --bs-btn-color: #767F90; --bs-btn-border-color: #B7BEC9;
+  --bs-btn-hover-bg: #8A94A6; --bs-btn-hover-border-color: #8A94A6;
+}
+.btn-success {
+  --bs-btn-bg: #6E9887; --bs-btn-border-color: #6E9887;
+  --bs-btn-hover-bg: #5E8676; --bs-btn-hover-border-color: #5E8676;
+  --bs-btn-active-bg: #547A6B; --bs-btn-active-border-color: #547A6B;
+  --bs-btn-disabled-bg: #6E9887; --bs-btn-disabled-border-color: #6E9887;
+  --bs-btn-focus-shadow-rgb: 110, 152, 135;
+}
+.btn-danger {
+  --bs-btn-bg: #C1666B; --bs-btn-border-color: #C1666B;
+  --bs-btn-hover-bg: #AF565B; --bs-btn-hover-border-color: #AF565B;
+  --bs-btn-active-bg: #9F4D52; --bs-btn-active-border-color: #9F4D52;
+  --bs-btn-disabled-bg: #C1666B; --bs-btn-disabled-border-color: #C1666B;
+  --bs-btn-focus-shadow-rgb: 193, 102, 107;
+}
+.btn-warning {
+  --bs-btn-bg: #DDA85B; --bs-btn-border-color: #DDA85B;
+  --bs-btn-hover-bg: #D19A47; --bs-btn-hover-border-color: #D19A47;
+  --bs-btn-active-bg: #C38F41; --bs-btn-active-border-color: #C38F41;
+  --bs-btn-disabled-bg: #DDA85B; --bs-btn-disabled-border-color: #DDA85B;
+  --bs-btn-focus-shadow-rgb: 221, 168, 91;
+}
+
+/* --- Tables --- */
+.table-dark {
+  --bs-table-bg: #3B4252;
+  --bs-table-striped-bg: #434A5C;
+  --bs-table-hover-bg: #4A5266;
+  --bs-table-active-bg: #4A5266;
+  --bs-table-border-color: #4C5468;
+}
+.table-striped > tbody > tr:nth-of-type(odd) > * {
+  --bs-table-accent-bg: #F7F8F9;
+}
+.table-hover > tbody > tr:hover > * {
+  --bs-table-accent-bg: #EEF1F3;
+}
+
+/* --- Alerts --- */
+.alert-success { --bs-alert-bg: #E7F0EB; --bs-alert-border-color: #CFE2D8; --bs-alert-color: #3E5F52; }
+.alert-danger  { --bs-alert-bg: #F5E6E7; --bs-alert-border-color: #E7C9CB; --bs-alert-color: #7A3F42; }
+.alert-warning { --bs-alert-bg: #FBF0DF; --bs-alert-border-color: #F2DDB8; --bs-alert-color: #7A5A26; }
+.alert-info    { --bs-alert-bg: #E6F0F1; --bs-alert-border-color: #C9E0E2; --bs-alert-color: #3B5F63; }
+
+/* --- Pagination --- */
+.page-link { color: #5C7A99; }
+.page-item.active .page-link {
+  background-color: #5C7A99;
+  border-color: #5C7A99;
+}
+.page-link:hover { color: #435870; background-color: #EEF1F3; }
+
+/* --- Forms --- */
+.form-control:focus,
+.form-select:focus {
+  border-color: #A9BAC9;
+  box-shadow: 0 0 0 .25rem rgba(92, 122, 153, .2);
+}
+
+/* --- Misc soft touches --- */
+.badge { font-weight: 600; }
+a { text-decoration: none; }
+
+/* --- Dashboard stat tiles --- */
+.stat-tile {
+  transition: box-shadow .15s ease, transform .15s ease;
+}
+.stat-tile:hover {
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .08);
+  transform: translateY(-1px);
+}
+.stat-icon {
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+}
+.stat-number {
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--bs-dark);
+}
+.stat-label {
+  font-size: .85rem;
+  color: #767F90;
+}
+.stat-link {
+  z-index: 2;
+}
+
+/* --- Dashboard chart cards --- */
+.chart-card .card-header {
+  background-color: #fff;
+  border-bottom: 1px solid #E6E8EB;
+  font-weight: 600;
+}
+.chart-empty-state {
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #9AA2B1;
+  text-align: center;
+}
+.chart-empty-state i { font-size: 1.75rem; margin-bottom: .5rem; }
