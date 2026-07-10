@@ -4,35 +4,60 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy
-from django.contrib.auth import login
 from .models import *
-from .forms import SignUpForm, BrandForm
 from shared.mixins import StaffRequiredMixin, ExportMixin
 from shared.decorators import audit_action
-from .forms import SignUpForm, BrandForm, InvoiceForm, InvoiceDetailFormSet
+from .forms import BrandForm, InvoiceForm, InvoiceDetailFormSet, ProductForm, WarehouseForm
 from decimal import Decimal
-from django.db.models import F
+from django.db.models import F, Sum
+from django.db.models.functions import TruncDate
+from django.utils import timezone
+from datetime import timedelta
+import json
 
 
 # === HOME (Página principal) ===
 @login_required
 def home(request):
     """Vista principal del sistema. Muestra resumen general."""
+    if not request.user.is_superuser and request.user.groups.filter(name='Cliente').exists():
+        return redirect('storefront:catalog')
+
+    # Ventas de los últimos 7 días, agrupadas por día
+    today = timezone.localdate()
+    start_date = today - timedelta(days=6)
+    daily_totals = (
+        Invoice.objects.filter(invoice_date__date__gte=start_date)
+        .annotate(day=TruncDate('invoice_date'))
+        .values('day')
+        .annotate(total=Sum('total'))
+    )
+    totals_by_day = {row['day']: float(row['total']) for row in daily_totals}
+    sales_labels, sales_values = [], []
+    for i in range(7):
+        day = start_date + timedelta(days=i)
+        sales_labels.append(day.strftime('%d/%m'))
+        sales_values.append(totals_by_day.get(day, 0))
+
+    # Productos con bajo stock, para el gráfico de barras
+    low_stock = list(Product.objects.filter(stock__lte=5, is_active=True).order_by('stock')[:8])
+
     context = {
         'total_brands': Brand.objects.count(),
         'total_products': Product.objects.count(),
         'total_customers': Customer.objects.count(),
         'total_invoices': Invoice.objects.count(),
         'recent_invoices': Invoice.objects.all()[:5],  # Últimas 5
-        'low_stock': Product.objects.filter(stock__lte=5, is_active=True),
+        'low_stock': low_stock,
+        'sales_labels_json': json.dumps(sales_labels),
+        'sales_values_json': json.dumps(sales_values),
+        'has_sales_data': any(sales_values),
+        'stock_labels_json': json.dumps([p.name for p in low_stock]),
+        'stock_values_json': json.dumps([p.stock for p in low_stock]),
+        'has_low_stock': bool(low_stock),
     }
     return render(request, 'billing/home.html', context)
 
-# ANTES (cualquier usuario logueado puede borrar):
-class BrandDeleteView(LoginRequiredMixin, DeleteView):
-    ...
-
-# DESPUÉS (solo staff puede borrar):
 class ProductGroupDeleteView(LoginRequiredMixin, StaffRequiredMixin, DeleteView):
     model = ProductGroup
     template_name = 'billing/productgroup_confirm_delete.html'
@@ -63,16 +88,6 @@ class InvoiceDeleteView(LoginRequiredMixin, StaffRequiredMixin, DeleteView):
     success_url = reverse_lazy('billing:invoice_list')
     staff_redirect_url = '/invoices/'
 
-
-# === REGISTRO ===
-class SignUpView(CreateView):
-    form_class = SignUpForm
-    template_name = 'registration/signup.html'
-    success_url = reverse_lazy('billing:brand_list')
-    def form_valid(self, form):
-        response = super().form_valid(form)
-        login(self.request, self.object)
-        return response
 
 # === BRAND (FBV) ===
 @login_required
@@ -116,6 +131,47 @@ def brand_delete(request, pk):
         return redirect('billing:brand_list')
     return render(request, 'billing/brand_confirm_delete.html', {'object': brand})
 
+# === WAREHOUSE === 
+@login_required
+def warehouse_list(request):
+    warehouses = Warehouse.objects.all()
+    return render(request, 'billing/warehouse_list.html', {'warehouses': warehouses})
+
+@login_required
+def warehouse_create(request):
+    if request.method == 'POST':
+        form = WarehouseForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Warehouse created!')
+            return redirect('billing:warehouse_list')
+    else:
+        form = WarehouseForm()
+    return render(request, 'billing/warehouse_form.html', {'form': form, 'title': 'Create Warehouse'})
+
+@login_required
+def warehouse_update(request, pk):
+    warehouse = get_object_or_404(Warehouse, pk=pk)
+    if request.method == 'POST':
+        form = WarehouseForm(request.POST, instance=warehouse)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Warehouse updated!')
+            return redirect('billing:warehouse_list')
+    else:
+        form = WarehouseForm(instance=warehouse)
+    return render(request, 'billing/warehouse_form.html', {'form': form, 'title': 'Edit Warehouse'})
+
+@login_required
+def warehouse_delete(request, pk):
+    warehouse = get_object_or_404(Warehouse, pk=pk)
+    if request.method == 'POST':
+        warehouse.delete()
+        messages.success(request, 'Warehouse deleted!')
+        return redirect('billing:warehouse_list')
+    return render(request, 'billing/warehouse_confirm_delete.html', {'object': warehouse})
+
+
 # === PRODUCTGROUP (CBV) ===
 class ProductGroupListView(LoginRequiredMixin, ListView):
     model = ProductGroup; template_name = 'billing/productgroup_list.html'; context_object_name = 'items'
@@ -145,8 +201,8 @@ class ProductListView(LoginRequiredMixin, ExportMixin, ListView):
 
     # Configuración de exportación
     export_filename = 'listado_productos'
-    export_fields = ['name', 'brand.name', 'group.name', 'unit_price', 'stock', 'is_active', 'suppliers']
-    export_headers = ['Nombre', 'Marca', 'Grupo', 'Precio Unitario', 'Stock', 'Activo', 'Proveedores']
+    export_fields = ['name', 'brand.name', 'group.name', 'unit_price', 'stock', 'balance', 'is_active', 'suppliers']
+    export_headers = ['Nombre', 'Marca', 'Grupo', 'Precio Unitario', 'Stock', 'Balance', 'Activo', 'Proveedores']
 
     def get_queryset(self):
         qs = Product.objects.select_related('brand', 'group').prefetch_related('suppliers').all()
@@ -237,9 +293,16 @@ class ProductListView(LoginRequiredMixin, ExportMixin, ListView):
         return context
     
 class ProductCreateView(LoginRequiredMixin, CreateView):
-    model = Product; fields = ['name','description','brand','group','suppliers','unit_price','stock','is_active']; template_name = 'billing/product_form.html'; success_url = reverse_lazy('billing:product_list')
+    model = Product
+    form_class = ProductForm
+    template_name = 'billing/product_form.html'
+    success_url = reverse_lazy('billing:product_list')
+
 class ProductUpdateView(LoginRequiredMixin, UpdateView):
-    model = Product; fields = ['name','description','brand','group','suppliers','unit_price','stock','is_active']; template_name = 'billing/product_form.html'; success_url = reverse_lazy('billing:product_list')
+    model = Product
+    form_class = ProductForm
+    template_name = 'billing/product_form.html'
+    success_url = reverse_lazy('billing:product_list')
 class ProductDeleteView(LoginRequiredMixin, DeleteView):
     model = Product; template_name = 'billing/product_confirm_delete.html'; success_url = reverse_lazy('billing:product_list')
 

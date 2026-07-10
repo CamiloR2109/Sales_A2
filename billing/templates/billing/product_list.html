@@ -132,6 +132,7 @@
       <th>Group</th>
       <th>Price</th>
       <th>Stock</th>
+      <th>Balance</th>
       <th>Active</th>
       <th>Suppliers</th>
       <th>Actions</th>
@@ -150,6 +151,9 @@
         {% else %}
           {{ item.stock }}
         {% endif %}
+      </td>
+      <td>
+        <span class="{% if item.balance > 0 %}text-success fw-semibold{% else %}text-muted{% endif %}">${{ item.balance }}</span>
       </td>
       <td>
         {% if item.is_active %}
@@ -171,7 +175,7 @@
       </td>
     </tr>
     {% empty %}
-    <tr><td colspan="8" class="text-center">No products found.</td></tr>
+    <tr><td colspan="9" class="text-center">No products found.</td></tr>
     {% endfor %}
   </tbody>
 </table>

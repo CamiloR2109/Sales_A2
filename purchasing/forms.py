@@ -17,7 +17,7 @@ PurchaseDetailFormSet = inlineformset_factory(
     Purchase,           # Modelo padre
     PurchaseDetail,     # Modelo hijo
     fields=['product', 'quantity', 'unit_cost'],
-    extra=3,           # 3 filas vacías para agregar
+    extra=1,           # 1 fila vacía inicial; se pueden agregar más con el botón
     can_delete=True,   # Checkbox para eliminar filas
     widgets={
         'product': forms.Select(attrs={'class': 'form-select'}),

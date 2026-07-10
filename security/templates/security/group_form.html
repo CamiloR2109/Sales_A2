@@ -1,0 +1,121 @@
+{% extends 'billing/base.html' %}
+{% block title %}Gestión de Roles y Permisos{% endblock %}
+{% block content %}
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-dark text-white py-3">
+    <h4 class="mb-0"><i class="bi bi-shield-lock"></i> Gestión de Roles y Permisos</h4>
+  </div>
+  <div class="row g-0">
+    <!-- Barra lateral de roles -->
+    <div class="col-md-3 bg-dark text-white p-0" style="min-height:70vh;">
+      <div class="list-group list-group-flush">
+        {% for g in all_groups %}
+        <a href="{% url 'security:group_update' g.pk %}"
+           class="list-group-item list-group-item-action bg-dark text-white border-secondary
+                  {% if object and object.pk == g.pk %}active{% endif %}">
+          {{ g.name }}
+        </a>
+        {% empty %}
+        <div class="p-3 text-secondary">No hay roles todavía.</div>
+        {% endfor %}
+        <a href="{% url 'security:group_create' %}"
+           class="list-group-item list-group-item-action bg-dark text-info border-secondary
+                  {% if not object %}active{% endif %}">
+          <i class="bi bi-plus-circle"></i> Nuevo rol
+        </a>
+      </div>
+    </div>
+
+    <!-- Panel de permisos -->
+    <div class="col-md-9 p-4">
+      <form method="post" id="role-form">
+        {% csrf_token %}
+        <div class="mb-4">
+          <label class="form-label fw-bold">Nombre del rol</label>
+          {{ form.name }}
+          {% if form.name.errors %}<div class="text-danger small">{{ form.name.errors|join:', ' }}</div>{% endif %}
+        </div>
+
+        {% for module in modules %}
+        <div class="card mb-3 module-card">
+          <div class="card-header bg-dark bg-opacity-75 text-white d-flex justify-content-between align-items-center">
+            <span class="fw-bold">{{ module.name }}</span>
+            <div class="form-check mb-0">
+              <input type="checkbox" class="form-check-input module-select-all">
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="row row-cols-3 g-2">
+              {% for perm in module.permissions %}
+              <div class="col">
+                <div class="form-check">
+                  <input type="checkbox" class="form-check-input perm-checkbox"
+                         name="permissions" value="{{ perm.id }}"
+                         id="perm-{{ perm.id }}" {% if perm.checked %}checked{% endif %}>
+                  <label class="form-check-label" for="perm-{{ perm.id }}">{{ perm.label }}</label>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+        {% empty %}
+        <p class="text-muted">No hay módulos con permisos disponibles.</p>
+        {% endfor %}
+
+        <div class="d-flex justify-content-between align-items-center mt-4 sticky-bottom bg-white py-3 border-top">
+          <div>
+            <button type="submit" class="btn btn-primary">Save</button>
+            <a href="{% url 'security:group_list' %}" class="btn btn-secondary">Cancel</a>
+          </div>
+          <!-- Resumen de permisos seleccionados -->
+          <div class="card border-0 bg-dark text-white" style="min-width:220px;">
+            <div class="card-body py-2 px-3">
+              <div class="fw-bold">{{ form.instance.name|default:'Nuevo rol' }}</div>
+              <small>Permisos: <span id="permSummaryCount">0</span>/<span id="permSummaryTotal">0</span></small>
+              <div class="progress mt-1" style="height:6px;">
+                <div class="progress-bar bg-info" id="permSummaryBar" style="width:0%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  function updateSummary() {
+    const boxes = document.querySelectorAll('.perm-checkbox');
+    const checked = document.querySelectorAll('.perm-checkbox:checked');
+    document.getElementById('permSummaryCount').textContent = checked.length;
+    document.getElementById('permSummaryTotal').textContent = boxes.length;
+    const pct = boxes.length ? Math.round((checked.length / boxes.length) * 100) : 0;
+    document.getElementById('permSummaryBar').style.width = pct + '%';
+
+    document.querySelectorAll('.module-card').forEach(function (card) {
+      const cardBoxes = card.querySelectorAll('.perm-checkbox');
+      const cardChecked = card.querySelectorAll('.perm-checkbox:checked');
+      const selectAll = card.querySelector('.module-select-all');
+      selectAll.checked = cardBoxes.length > 0 && cardChecked.length === cardBoxes.length;
+      selectAll.indeterminate = cardChecked.length > 0 && cardChecked.length < cardBoxes.length;
+    });
+  }
+
+  document.querySelectorAll('.module-select-all').forEach(function (cb) {
+    cb.addEventListener('change', function () {
+      const card = cb.closest('.module-card');
+      card.querySelectorAll('.perm-checkbox').forEach(function (i) { i.checked = cb.checked; });
+      updateSummary();
+    });
+  });
+
+  document.querySelectorAll('.perm-checkbox').forEach(function (cb) {
+    cb.addEventListener('change', updateSummary);
+  });
+
+  updateSummary();
+})();
+</script>
+{% endblock %}

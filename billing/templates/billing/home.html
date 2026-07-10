@@ -5,64 +5,118 @@
 <!-- Bienvenida -->
 <div class="p-4 mb-4 bg-light rounded-3">
   <h1>Welcome, {{ user.first_name|default:user.username }}!</h1>
-  <p class="lead">Sales & Billing Management System</p>
+  <p class="lead mb-0">Sales & Billing Management System</p>
 </div>
 
 <!-- Tarjetas de resumen -->
-<div class="row mb-4">
-  <div class="col-md-3">
-    <div class="card text-white bg-primary">
-      <div class="card-body text-center">
-        <h2>{{ total_brands }}</h2>
-        <p>Brands</p>
-        <a href="{% url 'billing:brand_list' %}" class="text-white">View all</a>
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3">
+    <div class="card stat-tile h-100">
+      <div class="card-body d-flex align-items-center gap-3">
+        <div class="stat-icon" style="background: rgba(92, 122, 153, .12); color: #5C7A99;">
+          <i class="bi bi-tags-fill"></i>
+        </div>
+        <div>
+          <div class="stat-number">{{ total_brands }}</div>
+          <div class="stat-label">Brands</div>
+        </div>
+      </div>
+      <a href="{% url 'billing:brand_list' %}" class="stretched-link stat-link" aria-label="View all brands"></a>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card stat-tile h-100">
+      <div class="card-body d-flex align-items-center gap-3">
+        <div class="stat-icon" style="background: rgba(110, 152, 135, .14); color: #6E9887;">
+          <i class="bi bi-box-seam-fill"></i>
+        </div>
+        <div>
+          <div class="stat-number">{{ total_products }}</div>
+          <div class="stat-label">Products</div>
+        </div>
+      </div>
+      <a href="{% url 'billing:product_list' %}" class="stretched-link stat-link" aria-label="View all products"></a>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card stat-tile h-100">
+      <div class="card-body d-flex align-items-center gap-3">
+        <div class="stat-icon" style="background: rgba(111, 163, 172, .14); color: #6FA3AC;">
+          <i class="bi bi-people-fill"></i>
+        </div>
+        <div>
+          <div class="stat-number">{{ total_customers }}</div>
+          <div class="stat-label">Customers</div>
+        </div>
+      </div>
+      <a href="{% url 'billing:customer_list' %}" class="stretched-link stat-link" aria-label="View all customers"></a>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card stat-tile h-100">
+      <div class="card-body d-flex align-items-center gap-3">
+        <div class="stat-icon" style="background: rgba(221, 168, 91, .16); color: #DDA85B;">
+          <i class="bi bi-receipt"></i>
+        </div>
+        <div>
+          <div class="stat-number">{{ total_invoices }}</div>
+          <div class="stat-label">Invoices</div>
+        </div>
+      </div>
+      <a href="{% url 'billing:invoice_list' %}" class="stretched-link stat-link" aria-label="View all invoices"></a>
+    </div>
+  </div>
+</div>
+
+<!-- Gráficos -->
+<div class="row g-3 mb-4">
+  <div class="col-lg-7">
+    <div class="card chart-card h-100">
+      <div class="card-header">Sales — last 7 days</div>
+      <div class="card-body">
+        {% if has_sales_data %}
+        <canvas id="salesChart" height="110"></canvas>
+        {% else %}
+        <div class="chart-empty-state">
+          <i class="bi bi-bar-chart-line"></i>
+          <div>No sales recorded in the last 7 days.</div>
+        </div>
+        {% endif %}
       </div>
     </div>
   </div>
-  <div class="col-md-3">
-    <div class="card text-white bg-success">
-      <div class="card-body text-center">
-        <h2>{{ total_products }}</h2>
-        <p>Products</p>
-        <a href="{% url 'billing:product_list' %}" class="text-white">View all</a>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-3">
-    <div class="card text-white bg-info">
-      <div class="card-body text-center">
-        <h2>{{ total_customers }}</h2>
-        <p>Customers</p>
-        <a href="{% url 'billing:customer_list' %}" class="text-white">View all</a>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-3">
-    <div class="card text-white bg-warning">
-      <div class="card-body text-center">
-        <h2>{{ total_invoices }}</h2>
-        <p>Invoices</p>
-        <a href="{% url 'billing:invoice_list' %}" class="text-white">View all</a>
+  <div class="col-lg-5">
+    <div class="card chart-card h-100">
+      <div class="card-header">Low Stock</div>
+      <div class="card-body">
+        {% if has_low_stock %}
+        <canvas id="stockChart" height="180"></canvas>
+        {% else %}
+        <div class="chart-empty-state">
+          <i class="bi bi-check-circle text-success"></i>
+          <div class="text-success">All products have stock.</div>
+        </div>
+        {% endif %}
       </div>
     </div>
   </div>
 </div>
 
-<div class="row">
-  <!-- Últimas facturas -->
-  <div class="col-md-7">
-    <div class="card">
-      <div class="card-header bg-dark text-white"><h5>Recent Invoices</h5></div>
+<!-- Últimas facturas -->
+<div class="row g-3">
+  <div class="col-12">
+    <div class="card chart-card">
+      <div class="card-header">Recent Invoices</div>
       <div class="card-body">
-        <table class="table table-sm">
-          <thead><tr><th>#</th><th>Customer</th><th>Date</th><th>Total</th></tr></thead>
+        <table class="table table-sm table-hover mb-0">
+          <thead><tr><th>#</th><th>Customer</th><th>Date</th><th class="text-end">Total</th></tr></thead>
           <tbody>
             {% for inv in recent_invoices %}
             <tr>
               <td>{{ inv.id }}</td>
               <td>{{ inv.customer }}</td>
               <td>{{ inv.invoice_date|date:"d/m/Y" }}</td>
-              <td>${{ inv.total }}</td>
+              <td class="text-end">${{ inv.total }}</td>
             </tr>
             {% empty %}
             <tr><td colspan="4" class="text-center">No invoices yet.</td></tr>
@@ -72,24 +126,65 @@
       </div>
     </div>
   </div>
-  <!-- Productos con bajo stock -->
-  <div class="col-md-5">
-    <div class="card">
-      <div class="card-header bg-danger text-white"><h5>Low Stock Alert</h5></div>
-      <div class="card-body">
-        <table class="table table-sm">
-          <thead><tr><th>Product</th><th>Stock</th></tr></thead>
-          <tbody>
-            {% for p in low_stock %}
-            <tr><td>{{ p.name }}</td><td><span class="badge bg-danger">{{ p.stock }}</span></td></tr>
-            {% empty %}
-            <tr><td colspan="2" class="text-center text-success">All products have stock.</td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
 </div>
 
+{% endblock %}
+
+{% block extra_js %}
+{% if has_sales_data or has_low_stock %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+{% if has_sales_data %}
+new Chart(document.getElementById('salesChart'), {
+  type: 'bar',
+  data: {
+    labels: {{ sales_labels_json|safe }},
+    datasets: [{
+      label: 'Sales',
+      data: {{ sales_values_json|safe }},
+      backgroundColor: '#5C7A99',
+      borderRadius: 4,
+      maxBarThickness: 40,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { display: false },
+      tooltip: { callbacks: { label: (ctx) => '$' + ctx.parsed.y.toFixed(2) } }
+    },
+    scales: {
+      y: { beginAtZero: true, grid: { color: '#E6E8EB' }, ticks: { callback: (v) => '$' + v } },
+      x: { grid: { display: false } }
+    }
+  }
+});
+{% endif %}
+
+{% if has_low_stock %}
+new Chart(document.getElementById('stockChart'), {
+  type: 'bar',
+  data: {
+    labels: {{ stock_labels_json|safe }},
+    datasets: [{
+      label: 'Stock',
+      data: {{ stock_values_json|safe }},
+      backgroundColor: '#C1666B',
+      borderRadius: 4,
+      maxBarThickness: 22,
+    }]
+  },
+  options: {
+    indexAxis: 'y',
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: '#E6E8EB' } },
+      y: { grid: { display: false } }
+    }
+  }
+});
+{% endif %}
+</script>
+{% endif %}
 {% endblock %}

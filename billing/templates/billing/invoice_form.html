@@ -20,34 +20,74 @@
       <h5 class="mt-4 mb-3">Invoice Details</h5>
       {{ formset.management_form }}
 
-      <table class="table table-bordered">
+      <table class="table table-bordered" id="details-table" data-prefix="{{ formset.prefix }}">
         <thead class="table-secondary">
           <tr>
             <th>Product</th>
             <th>Quantity</th>
             <th>Unit Price</th>
+            <th class="text-end">Subtotal</th>
             <th>Delete</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody id="details-body">
           {% for detail_form in formset %}
-          <tr>
+          <tr class="detail-row">
             <td>{{ detail_form.product }}</td>
             <td>{{ detail_form.quantity }}</td>
             <td>{{ detail_form.unit_price }}</td>
+            <td class="text-end row-subtotal">$0.00</td>
             <td class="text-center">
-              {% if detail_form.instance.pk %}
-                {{ detail_form.DELETE }}
-              {% endif %}
+              {% if detail_form.instance.pk %}<div class="d-none">{{ detail_form.DELETE }}</div>{% endif %}
+              <button type="button" class="btn btn-sm btn-danger remove-row">Delete</button>
             </td>
             {{ detail_form.id }}
             {% for error in detail_form.errors.values %}
-              <td colspan="4" class="text-danger">{{ error }}</td>
+              <td colspan="5" class="text-danger">{{ error }}</td>
             {% endfor %}
           </tr>
           {% endfor %}
         </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="3" class="text-end">Subtotal:</td>
+            <td class="text-end" id="subtotal-amount">$0.00</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td colspan="3" class="text-end">Tax (15%):</td>
+            <td class="text-end" id="tax-amount">$0.00</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td colspan="3" class="text-end fw-bold">Total:</td>
+            <td class="text-end fw-bold" id="grand-total">$0.00</td>
+            <td></td>
+          </tr>
+        </tfoot>
       </table>
+
+      <!-- Plantilla oculta usada para agregar nuevas filas -->
+      <table class="d-none">
+        <tbody>
+          <tr class="detail-row" id="empty-form-row">
+            <td>{{ formset.empty_form.product }}</td>
+            <td>{{ formset.empty_form.quantity }}</td>
+            <td>{{ formset.empty_form.unit_price }}</td>
+            <td class="text-end row-subtotal">$0.00</td>
+            <td class="text-center">
+              <div class="d-none">{{ formset.empty_form.DELETE }}</div>
+              <button type="button" class="btn btn-sm btn-danger remove-row">Delete</button>
+            </td>
+            {{ formset.empty_form.id }}
+          </tr>
+        </tbody>
+      </table>
+
+      <button type="button" id="add-row" class="btn btn-outline-primary mb-3">
+        <i class="bi bi-plus-circle"></i> Add Product
+      </button>
+      <br>
 
       <button type="submit" class="btn btn-warning">
         Create Invoice
@@ -56,4 +96,77 @@
     </form>
   </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const table = document.getElementById('details-table');
+  const prefix = table.dataset.prefix;
+  const body = document.getElementById('details-body');
+  const totalFormsInput = document.getElementById('id_' + prefix + '-TOTAL_FORMS');
+  const subtotalEl = document.getElementById('subtotal-amount');
+  const taxEl = document.getElementById('tax-amount');
+  const grandTotalEl = document.getElementById('grand-total');
+  const addRowBtn = document.getElementById('add-row');
+  const emptyRowTemplate = document.getElementById('empty-form-row');
+  const TAX_RATE = 0.15;
+
+  function rowSubtotal(row) {
+    const qtyInput = row.querySelector('input[name$="-quantity"]');
+    const priceInput = row.querySelector('input[name$="-unit_price"]');
+    const qty = parseFloat(qtyInput && qtyInput.value) || 0;
+    const price = parseFloat(priceInput && priceInput.value) || 0;
+    return qty * price;
+  }
+
+  function updateRow(row) {
+    const subtotal = rowSubtotal(row);
+    row.querySelector('.row-subtotal').textContent = '$' + subtotal.toFixed(2);
+  }
+
+  function updateGrandTotal() {
+    let subtotal = 0;
+    body.querySelectorAll('.detail-row').forEach(function (row) {
+      if (row.style.display === 'none') return;
+      subtotal += rowSubtotal(row);
+    });
+    const tax = subtotal * TAX_RATE;
+    subtotalEl.textContent = '$' + subtotal.toFixed(2);
+    taxEl.textContent = '$' + tax.toFixed(2);
+    grandTotalEl.textContent = '$' + (subtotal + tax).toFixed(2);
+  }
+
+  function attachRowListeners(row) {
+    row.querySelectorAll('input[name$="-quantity"], input[name$="-unit_price"]').forEach(function (input) {
+      input.addEventListener('input', function () {
+        updateRow(row);
+        updateGrandTotal();
+      });
+    });
+    const removeBtn = row.querySelector('.remove-row');
+    removeBtn.addEventListener('click', function () {
+      const deleteCheckbox = row.querySelector('input[name$="-DELETE"]');
+      if (deleteCheckbox) deleteCheckbox.checked = true;
+      row.style.display = 'none';
+      updateGrandTotal();
+    });
+  }
+
+  body.querySelectorAll('.detail-row').forEach(function (row) {
+    updateRow(row);
+    attachRowListeners(row);
+  });
+  updateGrandTotal();
+
+  addRowBtn.addEventListener('click', function () {
+    const formIndex = parseInt(totalFormsInput.value, 10);
+    const newRow = emptyRowTemplate.cloneNode(true);
+    newRow.removeAttribute('id');
+    newRow.innerHTML = newRow.innerHTML.replace(/__prefix__/g, formIndex);
+    body.appendChild(newRow);
+    updateRow(newRow);
+    attachRowListeners(newRow);
+    totalFormsInput.value = formIndex + 1;
+  });
+});
+</script>
 {% endblock %}

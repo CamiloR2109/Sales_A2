@@ -20,6 +20,16 @@ class Purchase(models.Model):
         verbose_name = 'Purchase'
         verbose_name_plural = 'Purchases'
         ordering = ['-purchase_date']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['supplier', 'document_number'],
+                name='unique_supplier_document'
+            )
+        ]
+        permissions = [
+            ('export_purchase', 'Can export purchase'),
+            ('print_purchase', 'Can print purchase'),
+        ]
 
     def __str__(self):
         return f'Purchase #{self.id} - {self.supplier}'
