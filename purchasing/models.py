@@ -4,6 +4,19 @@ from billing.models import Supplier, Product   # Reutilizamos modelos de billing
 
 class Purchase(models.Model):
     """Cabecera de compra. Documenta una adquisición a un proveedor."""
+    TIPO_PAGO_CONTADO = 'CONTADO'
+    TIPO_PAGO_CREDITO = 'CREDITO'
+    TIPO_PAGO_CHOICES = [
+        (TIPO_PAGO_CONTADO, 'Contado'),
+        (TIPO_PAGO_CREDITO, 'Crédito'),
+    ]
+    ESTADO_PENDIENTE = 'PENDIENTE'
+    ESTADO_PAGADA = 'PAGADA'
+    ESTADO_CHOICES = [
+        (ESTADO_PENDIENTE, 'Pendiente'),
+        (ESTADO_PAGADA, 'Pagada'),
+    ]
+
     supplier = models.ForeignKey(
         Supplier, on_delete=models.PROTECT, related_name='purchases'
     )
@@ -15,6 +28,9 @@ class Purchase(models.Model):
     tax = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     is_active = models.BooleanField(default=True)
+    tipo_pago = models.CharField(max_length=10, choices=TIPO_PAGO_CHOICES, default=TIPO_PAGO_CONTADO)
+    saldo = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    estado = models.CharField(max_length=10, choices=ESTADO_CHOICES, default=ESTADO_PENDIENTE)
 
     class Meta:
         verbose_name = 'Purchase'
@@ -33,6 +49,20 @@ class Purchase(models.Model):
 
     def __str__(self):
         return f'Purchase #{self.id} - {self.supplier}'
+
+    def marcar_como_contado(self):
+        """Compras al contado quedan canceladas de inmediato: saldo 0 y estado PAGADA."""
+        self.tipo_pago = self.TIPO_PAGO_CONTADO
+        self.saldo = 0
+        self.estado = self.ESTADO_PAGADA
+        self.save(update_fields=['tipo_pago', 'saldo', 'estado'])
+
+    def marcar_como_credito(self):
+        """Compras a crédito arrancan con saldo = total, pendientes hasta cancelar todas las cuotas."""
+        self.tipo_pago = self.TIPO_PAGO_CREDITO
+        self.saldo = self.total
+        self.estado = self.ESTADO_PENDIENTE
+        self.save(update_fields=['tipo_pago', 'saldo', 'estado'])
 
 class PurchaseDetail(models.Model):
     """Líneas de compra. Cada fila es un producto adquirido."""

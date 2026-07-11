@@ -1,0 +1,104 @@
+{% extends 'billing/base.html' %}
+{% block title %}Factura #{{ factura.id }}{% endblock %}
+{% block content %}
+<div class="card shadow mb-4">
+  <div class="card-header bg-dark text-white">
+    <h4>Factura #{{ factura.id }} - {{ factura.customer }}</h4>
+  </div>
+  <div class="card-body">
+    <div class="row mb-3">
+      <div class="col-md-6">
+        <p class="mb-1"><strong>Cliente:</strong> {{ factura.customer.full_name }}</p>
+        <p class="mb-1"><strong>DNI/RUC:</strong> {{ factura.customer.dni }}</p>
+        {% if factura.customer.email %}<p class="mb-1"><strong>Email:</strong> {{ factura.customer.email }}</p>{% endif %}
+        {% if factura.customer.phone %}<p class="mb-1"><strong>Teléfono:</strong> {{ factura.customer.phone }}</p>{% endif %}
+        <p class="mb-1"><strong>Fecha de factura:</strong> {{ factura.invoice_date|date:"d/m/Y H:i" }}</p>
+      </div>
+      <div class="col-md-6">
+        <p class="mb-1"><strong>Tipo de pago:</strong> {{ factura.get_tipo_pago_display }}</p>
+        <p class="mb-1"><strong>Estado:</strong>
+          <span class="badge {% if factura.estado == 'PAGADA' %}bg-success{% else %}bg-warning text-dark{% endif %}">
+            {{ factura.get_estado_display }}
+          </span>
+        </p>
+        <p class="mb-1"><strong>Subtotal:</strong> ${{ factura.subtotal }}</p>
+        <p class="mb-1"><strong>IVA:</strong> ${{ factura.tax }}</p>
+        <p class="mb-1"><strong>Total:</strong> ${{ factura.total }}</p>
+        <p class="mb-1"><strong>Saldo pendiente:</strong> ${{ factura.saldo }}</p>
+      </div>
+    </div>
+
+    {% if factura.details.exists %}
+    <h5>Productos facturados</h5>
+    <table class="table table-bordered mb-4">
+      <thead class="table-dark">
+        <tr>
+          <th>Producto</th><th class="text-center">Cantidad</th>
+          <th class="text-end">Precio Unitario</th><th class="text-end">Subtotal</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for detalle in factura.details.all %}
+        <tr>
+          <td>{{ detalle.product.name }}</td>
+          <td class="text-center">{{ detalle.quantity }}</td>
+          <td class="text-end">${{ detalle.unit_price }}</td>
+          <td class="text-end">${{ detalle.subtotal }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+
+    <div class="mb-3">
+      {% if factura.estado != 'PAGADA' and not factura.cuotas.exists %}
+      <a href="{% url 'creditos_ventas:generar_cuotas' factura.pk %}" class="btn btn-primary">Definir tipo de pago / Generar cuotas</a>
+      {% endif %}
+      {% if factura.tipo_pago == 'CREDITO' and factura.cuotas.exists %}
+        {% if factura.estado != 'PAGADA' %}
+        <a href="{% url 'creditos_ventas:registrar_pago_unificado' factura.pk %}" class="btn btn-success">Registrar pago (varias cuotas)</a>
+        {% endif %}
+        <a href="{% url 'creditos_ventas:factura_pagos_pdf' factura.pk %}" class="btn btn-outline-danger">
+          <i class="bi bi-file-earmark-pdf"></i> Exportar pagos a PDF
+        </a>
+      {% endif %}
+    </div>
+
+    {% if factura.cuotas.exists %}
+    <table class="table table-bordered">
+      <thead class="table-dark">
+        <tr>
+          <th>#</th><th>Vencimiento</th><th class="text-end">Valor</th>
+          <th class="text-end">Saldo</th><th>Estado</th><th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for cuota in factura.cuotas.all %}
+        <tr>
+          <td>{{ cuota.numero }}</td>
+          <td>{{ cuota.fecha_vencimiento|date:"d/m/Y" }}</td>
+          <td class="text-end">${{ cuota.valor }}</td>
+          <td class="text-end">${{ cuota.saldo }}</td>
+          <td>
+            <span class="badge {% if cuota.estado == 'PAGADA' %}bg-success{% else %}bg-warning text-dark{% endif %}">
+              {{ cuota.get_estado_display }}
+            </span>
+          </td>
+          <td>
+            {% if cuota.estado != 'PAGADA' %}
+            <a href="{% url 'creditos_ventas:registrar_pago' cuota.pk %}" class="btn btn-sm btn-success">Registrar pago</a>
+            {% endif %}
+            {% if not cuota.pagos.exists %}
+            <a href="{% url 'creditos_ventas:cuota_delete' cuota.pk %}" class="btn btn-sm btn-danger">Eliminar</a>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+
+    <a href="{% url 'creditos_ventas:factura_list' %}" class="btn btn-secondary">Volver</a>
+  </div>
+</div>
+{% endblock %}
