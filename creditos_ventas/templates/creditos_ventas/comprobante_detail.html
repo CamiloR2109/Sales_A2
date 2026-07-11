@@ -1,0 +1,71 @@
+{% extends 'billing/base.html' %}
+{% block title %}Comprobante {{ comprobante.numero_comprobante }}{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-8">
+    <div class="card shadow border-success" id="recibo">
+      <div class="card-header bg-success text-white text-center">
+        <h3 class="mb-0">Comprobante de Pago</h3>
+        <small>{{ comprobante.numero_comprobante }}</small>
+      </div>
+      <div class="card-body">
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <p class="mb-1"><strong>Cliente:</strong> {{ comprobante.cliente.full_name }}</p>
+            <p class="mb-1"><strong>DNI/RUC:</strong> {{ comprobante.cliente.dni }}</p>
+          </div>
+          <div class="col-md-6 text-md-end">
+            <p class="mb-1"><strong>N° Comprobante:</strong> {{ comprobante.numero_comprobante }}</p>
+            <p class="mb-1"><strong>Fecha de emisión:</strong> {{ comprobante.fecha_emision|date:"d/m/Y H:i" }}</p>
+          </div>
+        </div>
+
+        <hr>
+
+        <table class="table table-bordered">
+          <thead class="table-dark">
+            <tr>
+              <th>Factura</th><th>Cuota</th><th>Fecha de pago</th>
+              <th class="text-end">Valor pagado</th><th>Observación</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for pago in comprobante.pagos.all %}
+            <tr>
+              <td>
+                <a href="{% url 'creditos_ventas:factura_detail' pago.cuota.factura_id %}">
+                  #{{ pago.cuota.factura_id }}
+                </a>
+              </td>
+              <td>{{ pago.cuota.numero }}</td>
+              <td>{{ pago.fecha|date:"d/m/Y" }}</td>
+              <td class="text-end">${{ pago.valor }}</td>
+              <td>{{ pago.observacion|default:"—" }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr class="table-warning">
+              <td colspan="3" class="text-end fw-bold fs-5">TOTAL PAGADO:</td>
+              <td class="text-end fw-bold fs-5" colspan="2">${{ comprobante.total_pagado }}</td>
+            </tr>
+          </tfoot>
+        </table>
+
+        <p class="text-muted text-center mb-0">Este comprobante certifica el pago registrado en el sistema.</p>
+      </div>
+    </div>
+
+    <div class="text-center mt-3 no-print">
+      <button onclick="window.print()" class="btn btn-primary">Imprimir</button>
+      <a href="{% url 'creditos_ventas:factura_detail' comprobante.pagos.first.cuota.factura_id %}" class="btn btn-secondary">Volver a la factura</a>
+    </div>
+  </div>
+</div>
+
+<style>
+  @media print {
+    .navbar, .no-print { display: none !important; }
+  }
+</style>
+{% endblock %}

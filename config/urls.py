@@ -25,6 +25,8 @@ urlpatterns = [
     path('purchasing/', include('purchasing.urls')),
     path('security/', include('security.urls')),
     path('shop/', include('storefront.urls')),
+    path('creditos/', include('creditos_ventas.urls')),
+    path('creditos-compras/', include('creditos_compras.urls')),
     path('', include('billing.urls')),
 ]
 

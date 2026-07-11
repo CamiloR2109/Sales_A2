@@ -1,0 +1,56 @@
+{% extends 'billing/base.html' %}
+{% block title %}Registrar Pago - Factura #{{ factura.id }}{% endblock %}
+{% block content %}
+<div class="card shadow mb-4">
+  <div class="card-header bg-dark text-white">
+    <h4>Registrar pago - Factura #{{ factura.id }} ({{ factura.customer }})</h4>
+  </div>
+  <div class="card-body">
+    <p><strong>Saldo total de la factura:</strong> ${{ factura.saldo }}</p>
+    {{ form.non_field_errors }}
+    <form method="post">
+      {% csrf_token %}
+      <table class="table table-bordered align-middle">
+        <thead class="table-dark">
+          <tr>
+            <th>Pagar</th><th>Cuota</th><th>Vencimiento</th>
+            <th class="text-end">Saldo</th><th>Valor a pagar</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for cuota, pagar_field, valor_field in filas %}
+          <tr>
+            <td>{{ pagar_field }}</td>
+            <td>{{ cuota.numero }}</td>
+            <td>{{ cuota.fecha_vencimiento|date:"d/m/Y" }}</td>
+            <td class="text-end">${{ cuota.saldo }}</td>
+            <td>
+              {{ valor_field }}
+              {{ valor_field.errors }}
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="5" class="text-center">No hay cuotas pendientes.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <label class="form-label">{{ form.fecha.label }}</label>
+          {{ form.fecha }}
+          {{ form.fecha.errors }}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">{{ form.observacion.label }}</label>
+          {{ form.observacion }}
+          {{ form.observacion.errors }}
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-success">Generar comprobante</button>
+      <a href="{% url 'creditos_ventas:factura_detail' factura.pk %}" class="btn btn-secondary">Cancelar</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

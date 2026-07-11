@@ -134,12 +134,29 @@ class CustomerProfile(models.Model):
 
 class Invoice(models.Model):
     """Cabecera de factura."""
+    TIPO_PAGO_CONTADO = 'CONTADO'
+    TIPO_PAGO_CREDITO = 'CREDITO'
+    TIPO_PAGO_CHOICES = [
+        (TIPO_PAGO_CONTADO, 'Contado'),
+        (TIPO_PAGO_CREDITO, 'Crédito'),
+    ]
+    ESTADO_PENDIENTE = 'PENDIENTE'
+    ESTADO_PAGADA = 'PAGADA'
+    ESTADO_CHOICES = [
+        (ESTADO_PENDIENTE, 'Pendiente'),
+        (ESTADO_PAGADA, 'Pagada'),
+    ]
+
     customer = models.ForeignKey(Customer, on_delete=models.PROTECT, related_name='invoices')
     invoice_date = models.DateTimeField(auto_now_add=True)
     subtotal = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     tax = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     is_active = models.BooleanField(default=True)
+    tipo_pago = models.CharField(max_length=10, choices=TIPO_PAGO_CHOICES, default=TIPO_PAGO_CONTADO)
+    saldo = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    estado = models.CharField(max_length=10, choices=ESTADO_CHOICES, default=ESTADO_PENDIENTE)
+
     class Meta:
         ordering = ['-invoice_date']
         permissions = [
@@ -147,6 +164,20 @@ class Invoice(models.Model):
             ('print_invoice', 'Can print invoice'),
         ]
     def __str__(self): return f'Invoice #{self.id} - {self.customer}'
+
+    def marcar_como_contado(self):
+        """Ventas al contado quedan canceladas de inmediato: saldo 0 y estado PAGADA."""
+        self.tipo_pago = self.TIPO_PAGO_CONTADO
+        self.saldo = 0
+        self.estado = self.ESTADO_PAGADA
+        self.save(update_fields=['tipo_pago', 'saldo', 'estado'])
+
+    def marcar_como_credito(self):
+        """Ventas a crédito arrancan con saldo = total, pendientes hasta pagar todas las cuotas."""
+        self.tipo_pago = self.TIPO_PAGO_CREDITO
+        self.saldo = self.total
+        self.estado = self.ESTADO_PENDIENTE
+        self.save(update_fields=['tipo_pago', 'saldo', 'estado'])
 
 class InvoiceDetail(models.Model):
     """Líneas de factura."""

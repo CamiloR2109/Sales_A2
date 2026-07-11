@@ -29,12 +29,14 @@
     <li class="nav-item"><a class="nav-link" href="{% url 'billing:supplier_list' %}">Suppliers</a></li>
     <li class="nav-item"><a class="nav-link" href="{% url 'billing:product_list' %}">Products</a></li>
     <li class="nav-item"><a class="nav-link" href="{% url 'purchasing:purchase_list' %}">Purchases</a></li>
+    <li class="nav-item"><a class="nav-link" href="{% url 'creditos_compras:compra_list' %}">Créditos Compras</a></li>
     {% endif %}
 
     <!-- VENTAS: Vendedor y Administrador -->
     {% if user|has_group:'Vendedor' or user|has_group:'Administrador' %}
     <li class="nav-item"><a class="nav-link" href="{% url 'billing:customer_list' %}">Customers</a></li>
     <li class="nav-item"><a class="nav-link" href="{% url 'billing:invoice_list' %}">Invoices</a></li>
+    <li class="nav-item"><a class="nav-link" href="{% url 'creditos_ventas:factura_list' %}">Créditos</a></li>
     {% endif %}
 
     <!-- TIENDA: solo Cliente -->

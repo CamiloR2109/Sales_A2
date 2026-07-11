@@ -1,0 +1,27 @@
+{% extends 'billing/base.html' %}
+{% block title %}Registrar Pago{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-6">
+    <div class="card shadow">
+      <div class="card-header bg-dark text-white"><h4>Registrar pago - Cuota #{{ cuota.numero }} (Factura #{{ cuota.factura_id }})</h4></div>
+      <div class="card-body">
+        <p><strong>Saldo actual de la cuota:</strong> ${{ cuota.saldo }}</p>
+        <form method="post">
+          {% csrf_token %}
+          {{ form.non_field_errors }}
+          {% for field in form %}
+          <div class="mb-3">
+            <label class="form-label">{{ field.label }}</label>
+            {{ field }}
+            {{ field.errors }}
+          </div>
+          {% endfor %}
+          <button type="submit" class="btn btn-success">Registrar Pago</button>
+          <a href="{% url 'creditos_ventas:factura_detail' cuota.factura_id %}" class="btn btn-secondary">Cancelar</a>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
