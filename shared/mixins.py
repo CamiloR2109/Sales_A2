@@ -45,6 +45,35 @@ class StaffRequiredMixin:
         return super().dispatch(request, *args, **kwargs)
 
 
+class PermissionRequiredMixin:
+    """
+    Mixin que verifica si el usuario tiene el permiso Django indicado
+    (formato 'app_label.accion_modelo', ej: 'billing.delete_invoice').
+
+    A diferencia de StaffRequiredMixin (que depende de is_staff, un campo
+    que este proyecto nunca asigna al registrar usuarios), este mixin usa
+    el sistema de permisos/roles (Group + Permission) que sí se administra
+    desde la pantalla de Roles (security app) y desde setup_roles.py.
+    El superusuario y quienes tengan el permiso pasan; el resto es
+    redirigido con un mensaje de error.
+
+    Uso:
+        class InvoiceDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
+            permission_required = 'billing.delete_invoice'
+            permission_redirect_url = '/invoices/'
+    """
+
+    permission_required = None
+    permission_redirect_url = '/'
+    permission_error_message = 'You do not have permission to perform this action.'
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.has_perm(self.permission_required):
+            messages.error(request, self.permission_error_message)
+            return redirect(self.permission_redirect_url)
+        return super().dispatch(request, *args, **kwargs)
+
+
 class ExportMixin:
     """
     Mixin para exportar querysets de ListView a PDF o Excel.

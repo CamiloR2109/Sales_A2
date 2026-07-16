@@ -5,8 +5,8 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy
 from .models import *
-from shared.mixins import StaffRequiredMixin, ExportMixin
-from shared.decorators import audit_action
+from shared.mixins import PermissionRequiredMixin, ExportMixin
+from shared.decorators import audit_action, permission_required_redirect
 from .forms import BrandForm, InvoiceForm, InvoiceDetailFormSet, ProductForm, WarehouseForm
 from decimal import Decimal
 from django.db.models import F, Sum
@@ -58,46 +58,46 @@ def home(request):
     }
     return render(request, 'billing/home.html', context)
 
-class ProductGroupDeleteView(LoginRequiredMixin, StaffRequiredMixin, DeleteView):
+class ProductGroupDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
     model = ProductGroup
     template_name = 'billing/productgroup_confirm_delete.html'
     success_url = reverse_lazy('billing:productgroup_list')
-    staff_redirect_url = '/groups/'  # Redirige aquí si no es staff
+    permission_required = 'billing.delete_productgroup'
+    permission_redirect_url = '/groups/'
 
-class SupplierDeleteView(LoginRequiredMixin, StaffRequiredMixin, DeleteView):
+class SupplierDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
     model = Supplier
     template_name = 'billing/supplier_confirm_delete.html'
     success_url = reverse_lazy('billing:supplier_list')
-    staff_redirect_url = '/suppliers/'
+    permission_required = 'billing.delete_supplier'
+    permission_redirect_url = '/suppliers/'
 
-class ProductDeleteView(LoginRequiredMixin, StaffRequiredMixin, DeleteView):
+class ProductDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
     model = Product
     template_name = 'billing/product_confirm_delete.html'
     success_url = reverse_lazy('billing:product_list')
-    staff_redirect_url = '/products/'
+    permission_required = 'billing.delete_product'
+    permission_redirect_url = '/products/'
 
-class CustomerDeleteView(LoginRequiredMixin, StaffRequiredMixin, DeleteView):
+class CustomerDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
     model = Customer
     template_name = 'billing/customer_confirm_delete.html'
     success_url = reverse_lazy('billing:customer_list')
-    staff_redirect_url = '/customers/'
-
-class InvoiceDeleteView(LoginRequiredMixin, StaffRequiredMixin, DeleteView):
-    model = Invoice
-    template_name = 'billing/invoice_confirm_delete.html'
-    success_url = reverse_lazy('billing:invoice_list')
-    staff_redirect_url = '/invoices/'
+    permission_required = 'billing.delete_customer'
+    permission_redirect_url = '/customers/'
 
 
 # === BRAND (FBV) ===
 @login_required
-@audit_action('LIST_BRANDS')  
+@permission_required_redirect('billing.view_brand', redirect_to='billing:home')
+@audit_action('LIST_BRANDS')
 def brand_list(request):
     brands = Brand.objects.all()
     return render(request, 'billing/brand_list.html', {'brands': brands})
 
 @login_required
-@audit_action('CREATE_BRAND')  
+@permission_required_redirect('billing.add_brand', redirect_to='billing:brand_list')
+@audit_action('CREATE_BRAND')
 def brand_create(request):
     if request.method == 'POST':
         form = BrandForm(request.POST)
@@ -109,7 +109,8 @@ def brand_create(request):
     return render(request, 'billing/brand_form.html', {'form':form, 'title':'Create Brand'})
 
 @login_required
-@audit_action('UPDATE_BRAND')  
+@permission_required_redirect('billing.change_brand', redirect_to='billing:brand_list')
+@audit_action('UPDATE_BRAND')
 def brand_update(request, pk):
     brand = get_object_or_404(Brand, pk=pk)
     if request.method == 'POST':
@@ -122,7 +123,8 @@ def brand_update(request, pk):
     return render(request, 'billing/brand_form.html', {'form':form, 'title':'Edit Brand'})
 
 @login_required
-@audit_action('DELETE_BRAND')  
+@permission_required_redirect('billing.delete_brand', redirect_to='billing:brand_list')
+@audit_action('DELETE_BRAND')
 def brand_delete(request, pk):
     brand = get_object_or_404(Brand, pk=pk)
     if request.method == 'POST':
@@ -131,13 +133,15 @@ def brand_delete(request, pk):
         return redirect('billing:brand_list')
     return render(request, 'billing/brand_confirm_delete.html', {'object': brand})
 
-# === WAREHOUSE === 
+# === WAREHOUSE ===
 @login_required
+@permission_required_redirect('billing.view_warehouse', redirect_to='billing:home')
 def warehouse_list(request):
     warehouses = Warehouse.objects.all()
     return render(request, 'billing/warehouse_list.html', {'warehouses': warehouses})
 
 @login_required
+@permission_required_redirect('billing.add_warehouse', redirect_to='billing:warehouse_list')
 def warehouse_create(request):
     if request.method == 'POST':
         form = WarehouseForm(request.POST)
@@ -150,6 +154,7 @@ def warehouse_create(request):
     return render(request, 'billing/warehouse_form.html', {'form': form, 'title': 'Create Warehouse'})
 
 @login_required
+@permission_required_redirect('billing.change_warehouse', redirect_to='billing:warehouse_list')
 def warehouse_update(request, pk):
     warehouse = get_object_or_404(Warehouse, pk=pk)
     if request.method == 'POST':
@@ -163,6 +168,7 @@ def warehouse_update(request, pk):
     return render(request, 'billing/warehouse_form.html', {'form': form, 'title': 'Edit Warehouse'})
 
 @login_required
+@permission_required_redirect('billing.delete_warehouse', redirect_to='billing:warehouse_list')
 def warehouse_delete(request, pk):
     warehouse = get_object_or_404(Warehouse, pk=pk)
     if request.method == 'POST':
@@ -173,31 +179,35 @@ def warehouse_delete(request, pk):
 
 
 # === PRODUCTGROUP (CBV) ===
-class ProductGroupListView(LoginRequiredMixin, ListView):
+class ProductGroupListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
     model = ProductGroup; template_name = 'billing/productgroup_list.html'; context_object_name = 'items'
-class ProductGroupCreateView(LoginRequiredMixin, CreateView):
+    permission_required = 'billing.view_productgroup'; permission_redirect_url = '/'
+class ProductGroupCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
     model = ProductGroup; fields = ['name','is_active']; template_name = 'billing/productgroup_form.html'; success_url = reverse_lazy('billing:productgroup_list')
-class ProductGroupUpdateView(LoginRequiredMixin, UpdateView):
+    permission_required = 'billing.add_productgroup'; permission_redirect_url = '/groups/'
+class ProductGroupUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
     model = ProductGroup; fields = ['name','is_active']; template_name = 'billing/productgroup_form.html'; success_url = reverse_lazy('billing:productgroup_list')
-class ProductGroupDeleteView(LoginRequiredMixin, DeleteView):
-    model = ProductGroup; template_name = 'billing/productgroup_confirm_delete.html'; success_url = reverse_lazy('billing:productgroup_list')
+    permission_required = 'billing.change_productgroup'; permission_redirect_url = '/groups/'
 
 # === SUPPLIER (CBV) ===
-class SupplierListView(LoginRequiredMixin, ListView):
+class SupplierListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
     model = Supplier; template_name = 'billing/supplier_list.html'; context_object_name = 'items'
-class SupplierCreateView(LoginRequiredMixin, CreateView):
-    model = Supplier; fields = ['name','contact_name','email','phone','address','is_active']; template_name = 'billing/supplier_form.html'; success_url = reverse_lazy('billing:supplier_list')
-class SupplierUpdateView(LoginRequiredMixin, UpdateView):
-    model = Supplier; fields = ['name','contact_name','email','phone','address','is_active']; template_name = 'billing/supplier_form.html'; success_url = reverse_lazy('billing:supplier_list')
-class SupplierDeleteView(LoginRequiredMixin, DeleteView):
-    model = Supplier; template_name = 'billing/supplier_confirm_delete.html'; success_url = reverse_lazy('billing:supplier_list')
+    permission_required = 'billing.view_supplier'; permission_redirect_url = '/'
+class SupplierCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
+    model = Supplier; fields = ['name','business_name','document_type','document_number','contact_name','email','phone','address','is_active']; template_name = 'billing/supplier_form.html'; success_url = reverse_lazy('billing:supplier_list')
+    permission_required = 'billing.add_supplier'; permission_redirect_url = '/suppliers/'
+class SupplierUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
+    model = Supplier; fields = ['name','business_name','document_type','document_number','contact_name','email','phone','address','is_active']; template_name = 'billing/supplier_form.html'; success_url = reverse_lazy('billing:supplier_list')
+    permission_required = 'billing.change_supplier'; permission_redirect_url = '/suppliers/'
 
 # === PRODUCT (CBV) ===
-class ProductListView(LoginRequiredMixin, ExportMixin, ListView):
+class ProductListView(LoginRequiredMixin, PermissionRequiredMixin, ExportMixin, ListView):
     model = Product
     template_name = 'billing/product_list.html'
     context_object_name = 'items'
     paginate_by = 10
+    permission_required = 'billing.view_product'
+    permission_redirect_url = '/'
 
     # Configuración de exportación
     export_filename = 'listado_productos'
@@ -292,32 +302,36 @@ class ProductListView(LoginRequiredMixin, ExportMixin, ListView):
         context['query_string'] = query_params.urlencode()
         return context
     
-class ProductCreateView(LoginRequiredMixin, CreateView):
+class ProductCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
     model = Product
     form_class = ProductForm
     template_name = 'billing/product_form.html'
     success_url = reverse_lazy('billing:product_list')
+    permission_required = 'billing.add_product'
+    permission_redirect_url = '/products/'
 
-class ProductUpdateView(LoginRequiredMixin, UpdateView):
+class ProductUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
     model = Product
     form_class = ProductForm
     template_name = 'billing/product_form.html'
     success_url = reverse_lazy('billing:product_list')
-class ProductDeleteView(LoginRequiredMixin, DeleteView):
-    model = Product; template_name = 'billing/product_confirm_delete.html'; success_url = reverse_lazy('billing:product_list')
+    permission_required = 'billing.change_product'
+    permission_redirect_url = '/products/'
 
 # === CUSTOMER (CBV) ===
-class CustomerListView(LoginRequiredMixin, ListView):
+class CustomerListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
     model = Customer; template_name = 'billing/customer_list.html'; context_object_name = 'items'
-class CustomerCreateView(LoginRequiredMixin, CreateView):
-    model = Customer; fields = ['dni','first_name','last_name','email','phone','address','is_active']; template_name = 'billing/customer_form.html'; success_url = reverse_lazy('billing:customer_list')
-class CustomerUpdateView(LoginRequiredMixin, UpdateView):
-    model = Customer; fields = ['dni','first_name','last_name','email','phone','address','is_active']; template_name = 'billing/customer_form.html'; success_url = reverse_lazy('billing:customer_list')
-class CustomerDeleteView(LoginRequiredMixin, DeleteView):
-    model = Customer; template_name = 'billing/customer_confirm_delete.html'; success_url = reverse_lazy('billing:customer_list')
+    permission_required = 'billing.view_customer'; permission_redirect_url = '/'
+class CustomerCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
+    model = Customer; fields = ['dni','document_type','business_name','first_name','last_name','email','phone','address','is_active']; template_name = 'billing/customer_form.html'; success_url = reverse_lazy('billing:customer_list')
+    permission_required = 'billing.add_customer'; permission_redirect_url = '/customers/'
+class CustomerUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
+    model = Customer; fields = ['dni','document_type','business_name','first_name','last_name','email','phone','address','is_active']; template_name = 'billing/customer_form.html'; success_url = reverse_lazy('billing:customer_list')
+    permission_required = 'billing.change_customer'; permission_redirect_url = '/customers/'
 
 # === INVOICE (CBV) ===
 @login_required
+@permission_required_redirect('billing.view_invoice', redirect_to='billing:home')
 def invoice_list(request):
     """Lista todas las facturas con sus totales."""
     invoices = Invoice.objects.select_related('customer').all()
@@ -325,6 +339,7 @@ def invoice_list(request):
 
 
 @login_required
+@permission_required_redirect('billing.add_invoice', redirect_to='billing:invoice_list')
 def invoice_create(request):
     """Crea factura con sus líneas de detalle."""
     if request.method == 'POST':
@@ -365,6 +380,7 @@ def invoice_create(request):
 
 
 @login_required
+@permission_required_redirect('billing.view_invoice', redirect_to='billing:invoice_list')
 def invoice_detail(request, pk):
     """Muestra el detalle completo de una factura."""
     invoice = get_object_or_404(
@@ -376,6 +392,7 @@ def invoice_detail(request, pk):
 
 
 @login_required
+@permission_required_redirect('billing.delete_invoice', redirect_to='billing:invoice_list')
 def invoice_delete(request, pk):
     """Elimina una factura y todos sus detalles (CASCADE)."""
     invoice = get_object_or_404(Invoice, pk=pk)

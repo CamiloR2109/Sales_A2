@@ -13,8 +13,8 @@ class ProductForm(forms.ModelForm):
     class Meta:
         model = Product
         fields = [
-            'name', 'description', 'brand', 'group', 'suppliers',
-            'unit_price', 'stock', 'image', 'is_active',
+            'name', 'description', 'item_type', 'brand', 'group', 'suppliers',
+            'unit_price', 'tax_rate', 'stock', 'image', 'is_active',
         ]
         widgets = {
             'name': forms.TextInput(attrs={
@@ -26,6 +26,14 @@ class ProductForm(forms.ModelForm):
                 'class': 'form-control',
                 'placeholder': 'Descripción breve del producto...',
                 'rows': 3,
+            }),
+            'item_type': forms.Select(attrs={
+                'class': 'form-select',
+            }),
+            'tax_rate': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'min': '0',
             }),
             'brand': forms.Select(attrs={
                 'class': 'form-select',
@@ -59,10 +67,12 @@ class ProductForm(forms.ModelForm):
         help_texts = {
             'name': 'Nombre comercial del producto.',
             'description': 'Opcional. Agrega detalles o especificaciones.',
+            'item_type': 'Indica si es un producto físico o un servicio.',
             'brand': 'Selecciona la marca del producto.',
             'group': 'Categoría o grupo al que pertenece.',
             'suppliers': 'Mantén Ctrl para seleccionar varios proveedores.',
             'unit_price': 'Precio de venta al público. Debe ser mayor que cero.',
+            'tax_rate': 'Porcentaje de IVA aplicado a este ítem (ej: 15.00).',
             'stock': 'Cantidad disponible en inventario.',
             'image': 'Imagen del producto (JPG, PNG). Opcional.',
             'is_active': 'Desmarcar para ocultar el producto del sistema.',

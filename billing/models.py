@@ -1,3 +1,4 @@
+from decimal import Decimal
 from django.db import models
 from shared.validators import validate_cedula_ec
 
@@ -53,7 +54,16 @@ class Warehouse(models.Model):
 
 class Supplier(models.Model):
     """Proveedores. M2M con Product."""
+    DOCUMENT_CEDULA = 'CEDULA'
+    DOCUMENT_RUC = 'RUC'
+    DOCUMENT_CHOICES = [
+        (DOCUMENT_CEDULA, 'Cédula'),
+        (DOCUMENT_RUC, 'RUC'),
+    ]
     name = models.CharField(max_length=200, verbose_name='Company Name')
+    business_name = models.CharField(max_length=200, blank=True, null=True, verbose_name='Razón Social')
+    document_type = models.CharField(max_length=10, choices=DOCUMENT_CHOICES, default=DOCUMENT_RUC, blank=True)
+    document_number = models.CharField(max_length=13, blank=True, null=True, verbose_name='RUC/Cédula')
     contact_name = models.CharField(max_length=200, blank=True, null=True)
     email = models.EmailField(blank=True, null=True)
     phone = models.CharField(max_length=20, blank=True, null=True)
@@ -72,9 +82,17 @@ class Supplier(models.Model):
     def __str__(self): return self.name
 
 class Product(models.Model):
-    """Productos. FK a Brand/Group, M2M a Supplier."""
+    """Productos y servicios. FK a Brand/Group, M2M a Supplier."""
+    TYPE_PRODUCT = 'PRODUCTO'
+    TYPE_SERVICE = 'SERVICIO'
+    TYPE_CHOICES = [
+        (TYPE_PRODUCT, 'Producto'),
+        (TYPE_SERVICE, 'Servicio'),
+    ]
     name = models.CharField(max_length=200, verbose_name='Product Name')
     description = models.TextField(blank=True, null=True)
+    item_type = models.CharField(max_length=10, choices=TYPE_CHOICES, default=TYPE_PRODUCT)
+    tax_rate = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal('15.00'), verbose_name='IVA (%)')
     brand = models.ForeignKey(Brand, on_delete=models.PROTECT, related_name='products')
     group = models.ForeignKey(ProductGroup, on_delete=models.PROTECT, related_name='products')
     suppliers = models.ManyToManyField(Supplier, related_name='products', blank=True)
@@ -101,7 +119,15 @@ class Product(models.Model):
 
 class Customer(models.Model):
     """Clientes. OneToOne con CustomerProfile."""
+    DOCUMENT_CEDULA = 'CEDULA'
+    DOCUMENT_RUC = 'RUC'
+    DOCUMENT_CHOICES = [
+        (DOCUMENT_CEDULA, 'Cédula'),
+        (DOCUMENT_RUC, 'RUC'),
+    ]
     dni = models.CharField(max_length=13, unique=True, verbose_name='DNI/RUC', validators=[validate_cedula_ec])
+    document_type = models.CharField(max_length=10, choices=DOCUMENT_CHOICES, default=DOCUMENT_CEDULA, blank=True)
+    business_name = models.CharField(max_length=200, blank=True, null=True, verbose_name='Razón Social')
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
     email = models.EmailField(blank=True, null=True)

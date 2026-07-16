@@ -15,12 +15,15 @@ ROLES = {
         'view_product',
     ],
 
-    # El Analista de Compras gestiona el catálogo completo
+    # El Analista de Compras gestiona el catálogo completo y las compras
+    # (el menú lateral ya le da acceso a Compras y Créditos Compras, así
+    # que también necesita los permisos sobre Purchase para poder entrar).
     'Analista de Compras': [
         'view_brand', 'add_brand', 'change_brand', 'delete_brand',
         'view_productgroup', 'add_productgroup', 'change_productgroup', 'delete_productgroup',
         'view_supplier', 'add_supplier', 'change_supplier', 'delete_supplier',
         'view_product', 'add_product', 'change_product', 'delete_product',
+        'view_purchase', 'add_purchase', 'change_purchase', 'delete_purchase',
     ],
 
     # El Cliente solo puede ver el catálogo público de productos

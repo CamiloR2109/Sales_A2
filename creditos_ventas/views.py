@@ -14,18 +14,24 @@ from django.views.generic import DeleteView, DetailView, FormView, ListView, Upd
 from django.views.generic.edit import CreateView
 
 from billing.models import Invoice
+from shared.mixins import PermissionRequiredMixin
 from .forms import DefinirTipoPagoForm, PagoCuotaForm, PagoUnificadoForm
 from .models import ComprobantePago, CuotaVenta, PagoCuotaVenta
 
 
 # === FacturaVenta (Invoice) — CRUD básico centrado en el plan de pago ===
+# Estas vistas administran el plan de pago de una Invoice ya existente
+# (crédito/cuotas), así que reutilizan los permisos de billing.Invoice en
+# vez de definir permisos propios para CuotaVenta/PagoCuotaVenta.
 
-class FacturaVentaListView(LoginRequiredMixin, ListView):
+class FacturaVentaListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
     """Lista de facturas con su tipo de pago, saldo y estado. Con ?estado=PAGADA se filtra solo las canceladas."""
     model = Invoice
     template_name = 'creditos_ventas/factura_list.html'
     context_object_name = 'facturas'
     paginate_by = 15
+    permission_required = 'billing.view_invoice'
+    permission_redirect_url = '/'
 
     def get_queryset(self):
         qs = Invoice.objects.select_related('customer').order_by('-invoice_date')
@@ -40,11 +46,13 @@ class FacturaVentaListView(LoginRequiredMixin, ListView):
         return context
 
 
-class FacturaVentaDetailView(LoginRequiredMixin, DetailView):
+class FacturaVentaDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
     """Detalle de una factura: cliente, productos facturados, cuotas y pagos."""
     model = Invoice
     template_name = 'creditos_ventas/factura_detail.html'
     context_object_name = 'factura'
+    permission_required = 'billing.view_invoice'
+    permission_redirect_url = '/'
 
     def get_queryset(self):
         return Invoice.objects.select_related('customer').prefetch_related(
@@ -52,7 +60,7 @@ class FacturaVentaDetailView(LoginRequiredMixin, DetailView):
         )
 
 
-class FacturaVentaUpdateView(LoginRequiredMixin, UpdateView):
+class FacturaVentaUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
     """
     Define (o corrige, mientras siga PENDIENTE) el tipo de pago de la factura.
     Si es CONTADO la cancela automáticamente; si es CREDITO genera las cuotas.
@@ -61,6 +69,8 @@ class FacturaVentaUpdateView(LoginRequiredMixin, UpdateView):
     model = Invoice
     form_class = DefinirTipoPagoForm
     template_name = 'creditos_ventas/factura_form.html'
+    permission_required = 'billing.change_invoice'
+    permission_redirect_url = 'creditos_ventas:factura_list'
 
     def dispatch(self, request, *args, **kwargs):
         self.object = self.get_object()
@@ -85,11 +95,13 @@ class FacturaVentaUpdateView(LoginRequiredMixin, UpdateView):
         return redirect('creditos_ventas:factura_detail', pk=factura.pk)
 
 
-class FacturaVentaDeleteView(LoginRequiredMixin, DeleteView):
+class FacturaVentaDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
     """Elimina una factura. Bloqueada si tiene cuotas (PROTECT) o ya está PAGADA."""
     model = Invoice
     template_name = 'creditos_ventas/factura_confirm_delete.html'
     success_url = reverse_lazy('creditos_ventas:factura_list')
+    permission_required = 'billing.delete_invoice'
+    permission_redirect_url = 'creditos_ventas:factura_list'
 
     def form_valid(self, form):
         if self.object.estado == Invoice.ESTADO_PAGADA:
@@ -104,10 +116,12 @@ class FacturaVentaDeleteView(LoginRequiredMixin, DeleteView):
 
 # === Generación de cuotas ===
 
-class GenerarCuotasView(LoginRequiredMixin, FormView):
+class GenerarCuotasView(LoginRequiredMixin, PermissionRequiredMixin, FormView):
     """Vista dedicada a solicitar la cantidad de cuotas y generarlas para una venta a crédito."""
     form_class = DefinirTipoPagoForm
     template_name = 'creditos_ventas/generar_cuotas_form.html'
+    permission_required = 'billing.change_invoice'
+    permission_redirect_url = 'creditos_ventas:factura_list'
 
     def dispatch(self, request, *args, **kwargs):
         self.factura = get_object_or_404(Invoice, pk=kwargs['pk'])
@@ -147,10 +161,12 @@ class GenerarCuotasView(LoginRequiredMixin, FormView):
 
 # === Cuotas ===
 
-class CuotaVentaDeleteView(LoginRequiredMixin, DeleteView):
+class CuotaVentaDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
     """Elimina una cuota. Bloqueada si ya tiene pagos registrados (PROTECT en PagoCuotaVenta.cuota)."""
     model = CuotaVenta
     template_name = 'creditos_ventas/cuota_confirm_delete.html'
+    permission_required = 'billing.delete_invoice'
+    permission_redirect_url = 'creditos_ventas:factura_list'
 
     def get_success_url(self):
         return reverse('creditos_ventas:factura_detail', kwargs={'pk': self.object.factura_id})
@@ -168,7 +184,7 @@ class CuotaVentaDeleteView(LoginRequiredMixin, DeleteView):
 
 # === Pagos de cuota / Comprobantes ===
 
-class RegistrarPagoView(LoginRequiredMixin, CreateView):
+class RegistrarPagoView(LoginRequiredMixin, PermissionRequiredMixin, CreateView):
     """
     Registra el abono de UNA cuota. Genera automáticamente un ComprobantePago
     (con esa única cuota) como recibo de la operación. La actualización de
@@ -177,6 +193,8 @@ class RegistrarPagoView(LoginRequiredMixin, CreateView):
     model = PagoCuotaVenta
     form_class = PagoCuotaForm
     template_name = 'creditos_ventas/pago_form.html'
+    permission_required = 'billing.change_invoice'
+    permission_redirect_url = 'creditos_ventas:factura_list'
 
     def dispatch(self, request, *args, **kwargs):
         self.cuota = get_object_or_404(CuotaVenta, pk=kwargs['cuota_pk'])
@@ -207,7 +225,7 @@ class RegistrarPagoView(LoginRequiredMixin, CreateView):
         return redirect('creditos_ventas:comprobante_detail', pk=comprobante.pk)
 
 
-class RegistrarPagoUnificadoView(LoginRequiredMixin, FormView):
+class RegistrarPagoUnificadoView(LoginRequiredMixin, PermissionRequiredMixin, FormView):
     """
     Permite seleccionar varias cuotas pendientes de una factura y registrarles
     un pago en una sola operación, generando UN solo ComprobantePago que agrupa
@@ -215,6 +233,8 @@ class RegistrarPagoUnificadoView(LoginRequiredMixin, FormView):
     """
     form_class = PagoUnificadoForm
     template_name = 'creditos_ventas/pago_unificado_form.html'
+    permission_required = 'billing.change_invoice'
+    permission_redirect_url = 'creditos_ventas:factura_list'
 
     def dispatch(self, request, *args, **kwargs):
         self.factura = get_object_or_404(Invoice, pk=kwargs['pk'])
@@ -254,11 +274,13 @@ class RegistrarPagoUnificadoView(LoginRequiredMixin, FormView):
         return redirect('creditos_ventas:comprobante_detail', pk=comprobante.pk)
 
 
-class ComprobantePagoDetailView(LoginRequiredMixin, DetailView):
+class ComprobantePagoDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
     """Recibo/comprobante de pago: detalle de las cuotas pagadas en una misma transacción."""
     model = ComprobantePago
     template_name = 'creditos_ventas/comprobante_detail.html'
     context_object_name = 'comprobante'
+    permission_required = 'billing.view_invoice'
+    permission_redirect_url = 'creditos_ventas:factura_list'
 
     def get_queryset(self):
         return ComprobantePago.objects.select_related('cliente').prefetch_related('pagos__cuota__factura')
@@ -266,12 +288,14 @@ class ComprobantePagoDetailView(LoginRequiredMixin, DetailView):
 
 # === Exportación a PDF ===
 
-class FacturaVentaPagosPdfView(LoginRequiredMixin, View):
+class FacturaVentaPagosPdfView(LoginRequiredMixin, PermissionRequiredMixin, View):
     """
     Único botón de exportación dentro de la factura a crédito: genera un PDF
     con los pagos de las cuotas que YA están en estado PAGADA (ignora cuotas
     pendientes o con abonos parciales todavía no completados).
     """
+    permission_required = 'billing.view_invoice'
+    permission_redirect_url = 'creditos_ventas:factura_list'
 
     def get(self, request, pk):
         factura = get_object_or_404(Invoice.objects.select_related('customer'), pk=pk)
