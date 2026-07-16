@@ -4,19 +4,21 @@ from django.contrib.auth.models import User, Group, Permission
 
 # === 1. REGISTRO DE USUARIO CON ROL ===
 class UserRegisterForm(UserCreationForm):
-    """Registro público: el usuario elige su rol al registrarse."""
+    """
+    Registro público: crea únicamente cuentas del rol 'Cliente' (tienda).
+
+    Los roles internos (Vendedor, Analista de Compras, Administrador) NO se
+    ofrecen aquí a propósito: si el formulario dejara elegir el rol
+    libremente, cualquier visitante podría auto-asignarse 'Administrador' y
+    obtener todos los permisos del sistema. Esos roles solo los asigna un
+    Administrador ya autenticado desde la pantalla de Usuarios (UserUpdateForm).
+    """
     email = forms.EmailField(required=True)
-    role = forms.ModelChoiceField(
-        queryset=Group.objects.all(),
-        required=True,
-        label='Role',
-        empty_label='-- Select a role --',
-    )
 
     class Meta:
         model = User
         fields = ['username', 'first_name', 'last_name', 'email',
-                  'password1', 'password2', 'role']
+                  'password1', 'password2']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -26,8 +28,8 @@ class UserRegisterForm(UserCreationForm):
     def save(self, commit=True):
         user = super().save(commit)
         if commit:
-            # Asignar el rol elegido al nuevo usuario
-            user.groups.add(self.cleaned_data['role'])
+            cliente_group, _ = Group.objects.get_or_create(name='Cliente')
+            user.groups.add(cliente_group)
         return user
 
 # === 2. EDICIÓN DE USUARIO (asignar roles) ===

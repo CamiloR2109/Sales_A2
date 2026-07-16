@@ -7,18 +7,24 @@ from django.urls import reverse, reverse_lazy
 from django.views.generic import DeleteView, DetailView, FormView, ListView, UpdateView
 
 from purchasing.models import Purchase
+from shared.mixins import PermissionRequiredMixin
 from .forms import DefinirTipoPagoCompraForm, PagoCuotaCompraForm
 from .models import CuotaCompra, PagoCuotaCompra
 
 
 # === Compra (Purchase) — CRUD básico centrado en el plan de pago ===
+# Estas vistas administran el plan de pago de una Purchase ya existente
+# (crédito/cuotas), así que reutilizan los permisos de purchasing.Purchase
+# en vez de definir permisos propios para CuotaCompra/PagoCuotaCompra.
 
-class CompraListView(LoginRequiredMixin, ListView):
+class CompraListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
     """Lista de compras con su tipo de pago, saldo y estado. Con ?estado=PAGADA se filtra."""
     model = Purchase
     template_name = 'creditos_compras/compra_list.html'
     context_object_name = 'compras'
     paginate_by = 15
+    permission_required = 'purchasing.view_purchase'
+    permission_redirect_url = '/'
 
     def get_queryset(self):
         qs = Purchase.objects.select_related('supplier').order_by('-purchase_date')
@@ -33,11 +39,13 @@ class CompraListView(LoginRequiredMixin, ListView):
         return context
 
 
-class CompraDetailView(LoginRequiredMixin, DetailView):
+class CompraDetailView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
     """Detalle de una compra: proveedor, productos y cuotas."""
     model = Purchase
     template_name = 'creditos_compras/compra_detail.html'
     context_object_name = 'compra'
+    permission_required = 'purchasing.view_purchase'
+    permission_redirect_url = '/'
 
     def get_queryset(self):
         return Purchase.objects.select_related('supplier').prefetch_related(
@@ -45,7 +53,7 @@ class CompraDetailView(LoginRequiredMixin, DetailView):
         )
 
 
-class DefinirTipoPagoCompraView(LoginRequiredMixin, UpdateView):
+class DefinirTipoPagoCompraView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
     """
     Vista de "Registro de tipo de pago": define si la compra es CONTADO o
     CREDITO. Si es CONTADO la cancela automáticamente; si es CREDITO, además
@@ -55,6 +63,8 @@ class DefinirTipoPagoCompraView(LoginRequiredMixin, UpdateView):
     model = Purchase
     form_class = DefinirTipoPagoCompraForm
     template_name = 'creditos_compras/compra_form.html'
+    permission_required = 'purchasing.change_purchase'
+    permission_redirect_url = 'purchasing:purchase_list'
 
     def dispatch(self, request, *args, **kwargs):
         self.object = self.get_object()
@@ -78,11 +88,13 @@ class DefinirTipoPagoCompraView(LoginRequiredMixin, UpdateView):
         return redirect('creditos_compras:compra_detail', pk=compra.pk)
 
 
-class CompraDeleteView(LoginRequiredMixin, DeleteView):
+class CompraDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
     """Elimina una compra. Bloqueada si tiene cuotas (PROTECT) o ya está PAGADA."""
     model = Purchase
     template_name = 'creditos_compras/compra_confirm_delete.html'
     success_url = reverse_lazy('creditos_compras:compra_list')
+    permission_required = 'purchasing.delete_purchase'
+    permission_redirect_url = 'purchasing:purchase_list'
 
     def form_valid(self, form):
         if self.object.estado == Purchase.ESTADO_PAGADA:
@@ -97,10 +109,12 @@ class CompraDeleteView(LoginRequiredMixin, DeleteView):
 
 # === Generación de cuotas (vista dedicada, además del flujo combinado de arriba) ===
 
-class GenerarCuotasCompraView(LoginRequiredMixin, FormView):
+class GenerarCuotasCompraView(LoginRequiredMixin, PermissionRequiredMixin, FormView):
     """Vista dedicada de "generación de cuotas" para una compra a crédito ya definida."""
     form_class = DefinirTipoPagoCompraForm
     template_name = 'creditos_compras/generar_cuotas_form.html'
+    permission_required = 'purchasing.change_purchase'
+    permission_redirect_url = 'purchasing:purchase_list'
 
     def dispatch(self, request, *args, **kwargs):
         self.compra = get_object_or_404(Purchase, pk=kwargs['pk'])
@@ -139,11 +153,13 @@ class GenerarCuotasCompraView(LoginRequiredMixin, FormView):
 
 # === Cuotas ===
 
-class CuotaCompraListView(LoginRequiredMixin, ListView):
+class CuotaCompraListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
     """Vista de "lista de cuotas" de una compra específica."""
     model = CuotaCompra
     template_name = 'creditos_compras/cuota_list.html'
     context_object_name = 'cuotas'
+    permission_required = 'purchasing.view_purchase'
+    permission_redirect_url = 'purchasing:purchase_list'
 
     def dispatch(self, request, *args, **kwargs):
         self.compra = get_object_or_404(Purchase, pk=kwargs['pk'])
@@ -158,12 +174,14 @@ class CuotaCompraListView(LoginRequiredMixin, ListView):
         return context
 
 
-class CuotasPendientesListView(LoginRequiredMixin, ListView):
+class CuotasPendientesListView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
     """Vista de "consulta de cuotas pendientes": todas las cuotas PENDIENTE de todas las compras."""
     model = CuotaCompra
     template_name = 'creditos_compras/cuotas_pendientes_list.html'
     context_object_name = 'cuotas'
     paginate_by = 20
+    permission_required = 'purchasing.view_purchase'
+    permission_redirect_url = 'purchasing:purchase_list'
 
     def get_queryset(self):
         return (
@@ -173,10 +191,12 @@ class CuotasPendientesListView(LoginRequiredMixin, ListView):
         )
 
 
-class CuotaCompraDeleteView(LoginRequiredMixin, DeleteView):
+class CuotaCompraDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
     """Elimina una cuota. Bloqueada si ya tiene pagos registrados (PROTECT en PagoCuotaCompra.cuota)."""
     model = CuotaCompra
     template_name = 'creditos_compras/cuota_confirm_delete.html'
+    permission_required = 'purchasing.delete_purchase'
+    permission_redirect_url = 'purchasing:purchase_list'
 
     def get_success_url(self):
         return reverse('creditos_compras:compra_detail', kwargs={'pk': self.object.compra_id})
@@ -194,7 +214,7 @@ class CuotaCompraDeleteView(LoginRequiredMixin, DeleteView):
 
 # === Pagos ===
 
-class RegistrarPagoCompraView(LoginRequiredMixin, FormView):
+class RegistrarPagoCompraView(LoginRequiredMixin, PermissionRequiredMixin, FormView):
     """
     Vista de "registro de pagos": la creación real ocurre en
     CuotaCompra.registrar_pago(), que centraliza la lógica de negocio y el
@@ -202,6 +222,8 @@ class RegistrarPagoCompraView(LoginRequiredMixin, FormView):
     """
     form_class = PagoCuotaCompraForm
     template_name = 'creditos_compras/pago_form.html'
+    permission_required = 'purchasing.change_purchase'
+    permission_redirect_url = 'purchasing:purchase_list'
 
     def dispatch(self, request, *args, **kwargs):
         self.cuota = get_object_or_404(CuotaCompra, pk=kwargs['cuota_pk'])
@@ -233,11 +255,13 @@ class RegistrarPagoCompraView(LoginRequiredMixin, FormView):
         return redirect('creditos_compras:historial_pagos', pk=self.cuota.pk)
 
 
-class HistorialPagosCompraView(LoginRequiredMixin, DetailView):
+class HistorialPagosCompraView(LoginRequiredMixin, PermissionRequiredMixin, DetailView):
     """Vista de "historial de pagos" de una cuota específica."""
     model = CuotaCompra
     template_name = 'creditos_compras/historial_pagos.html'
     context_object_name = 'cuota'
+    permission_required = 'purchasing.view_purchase'
+    permission_redirect_url = 'purchasing:purchase_list'
 
     def get_queryset(self):
         return CuotaCompra.objects.select_related('compra').prefetch_related('pagos')

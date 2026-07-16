@@ -1,0 +1,44 @@
+{% extends 'billing/base_sidebar.html' %}
+{% load security_tags %}
+{% block title %}Inicio - Sales System{% endblock %}
+{% block content %}
+
+<h4 class="mb-3">¿Qué deseas hacer?</h4>
+
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <a href="{% url 'billing:invoice_create' %}" class="shortcut-card">
+      <span class="shortcut-icon"><i class="bi bi-receipt"></i></span>
+      <span>Crear una factura</span>
+    </a>
+  </div>
+  <div class="col-6 col-md-3">
+    <a href="{% url 'billing:invoice_list' %}" class="shortcut-card">
+      <span class="shortcut-icon"><i class="bi bi-search"></i></span>
+      <span>Consultar documentos</span>
+    </a>
+  </div>
+  <div class="col-6 col-md-3">
+    <a href="{% url 'purchasing:purchase_list' %}" class="shortcut-card">
+      <span class="shortcut-icon"><i class="bi bi-cart-plus-fill"></i></span>
+      <span>Registrar compras</span>
+    </a>
+  </div>
+  <div class="col-6 col-md-3">
+    <a href="{% url 'billing:product_create' %}" class="shortcut-card">
+      <span class="shortcut-icon"><i class="bi bi-box-seam-fill"></i></span>
+      <span>Crear un servicio o producto</span>
+    </a>
+  </div>
+  <div class="col-6 col-md-3">
+    <a href="{% url 'billing:customer_create' %}" class="shortcut-card">
+      <span class="shortcut-icon"><i class="bi bi-person-plus-fill"></i></span>
+      <span>Registrar una persona</span>
+    </a>
+  </div>
+</div>
+
+{# El resto del dashboard (tarjetas de totales, gráficos, facturas recientes) puede reutilizarse #}
+{# copiando el contenido de billing/home.html dentro de este mismo bloque {% block content %}. #}
+
+{% endblock %}

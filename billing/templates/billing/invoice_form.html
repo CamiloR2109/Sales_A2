@@ -1,4 +1,4 @@
-{% extends 'billing/base.html' %}
+{% extends 'billing/base_sidebar.html' %}
 {% block title %}{{ title }}{% endblock %}
 {% block content %}
 <div class="card shadow">
@@ -38,7 +38,7 @@
             <td>{{ detail_form.unit_price }}</td>
             <td class="text-end row-subtotal">$0.00</td>
             <td class="text-center">
-              {% if detail_form.instance.pk %}<div class="d-none">{{ detail_form.DELETE }}</div>{% endif %}
+              <div class="d-none">{{ detail_form.DELETE }}</div>
               <button type="button" class="btn btn-sm btn-danger remove-row">Delete</button>
             </td>
             {{ detail_form.id }}

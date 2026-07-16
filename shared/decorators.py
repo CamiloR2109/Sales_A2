@@ -1,5 +1,7 @@
 import logging
 from functools import wraps
+from django.contrib import messages
+from django.shortcuts import redirect
 from django.utils import timezone
 
 # Configurar logger para auditoría
@@ -68,5 +70,33 @@ def audit_action(action_name):
 
             return response
 
+        return wrapper
+    return decorator
+
+
+def permission_required_redirect(perm, redirect_to='/', error_message=None):
+    """
+    Decorador para FBVs, equivalente a PermissionRequiredMixin (ver shared/mixins.py).
+
+    Verifica request.user.has_perm(perm) (el superusuario siempre pasa).
+    Si el usuario no tiene el permiso, lo redirige con un mensaje de error
+    en vez de dejarlo ejecutar la vista.
+
+    Uso:
+        @login_required
+        @permission_required_redirect('billing.delete_invoice', redirect_to='billing:invoice_list')
+        def invoice_delete(request, pk):
+            ...
+    """
+    def decorator(view_func):
+        @wraps(view_func)
+        def wrapper(request, *args, **kwargs):
+            if not request.user.has_perm(perm):
+                messages.error(
+                    request,
+                    error_message or 'You do not have permission to perform this action.'
+                )
+                return redirect(redirect_to)
+            return view_func(request, *args, **kwargs)
         return wrapper
     return decorator

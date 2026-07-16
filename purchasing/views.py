@@ -4,11 +4,13 @@ from django.contrib.auth.decorators import login_required
 from decimal import Decimal
 from django.db.models import F
 from billing.models import Product, Supplier
+from shared.decorators import permission_required_redirect
 
 from .models import Purchase, PurchaseDetail
 from .forms import PurchaseForm, PurchaseDetailFormSet
 
 @login_required
+@permission_required_redirect('purchasing.view_purchase', redirect_to='billing:home')
 def purchase_list(request):
     """Lista todas las compras con sus totales, con filtros de búsqueda."""
     purchases = Purchase.objects.select_related('supplier').all()
@@ -71,6 +73,7 @@ def purchase_list(request):
     return render(request, 'purchasing/purchase_list.html', context)
 
 @login_required
+@permission_required_redirect('purchasing.add_purchase', redirect_to='purchasing:purchase_list')
 def purchase_create(request):
     """Crea factura con sus líneas de detalle."""
     if request.method == 'POST':
@@ -110,6 +113,7 @@ def purchase_create(request):
     })
     
 @login_required
+@permission_required_redirect('purchasing.view_purchase', redirect_to='purchasing:purchase_list')
 def purchase_detail(request, pk):
     """Muestra el detalle completo de una factura."""
     purchase = get_object_or_404(
@@ -120,6 +124,7 @@ def purchase_detail(request, pk):
     return render(request, 'purchasing/purchase_detail.html', {'purchase': purchase})
 
 @login_required
+@permission_required_redirect('purchasing.delete_purchase', redirect_to='purchasing:purchase_list')
 def purchase_delete(request, pk):
     """Elimina una factura y todos sus detalles (CASCADE)."""
     purchase = get_object_or_404(Purchase, pk=pk)

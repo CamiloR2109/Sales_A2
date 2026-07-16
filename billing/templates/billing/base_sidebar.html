@@ -1,0 +1,197 @@
+{% load security_tags %}
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Sales{% endblock %}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="{% static 'css/theme.css' %}">
+  <style>
+    :root {
+      --sidebar-width: 230px;
+      --sidebar-width-collapsed: 64px;
+      --siigo-blue: #0d6efd;
+    }
+    body { background: #f4f6f8; }
+
+    /* ── Sidebar ── */
+    .app-sidebar {
+      position: fixed; top: 0; left: 0; bottom: 0;
+      width: var(--sidebar-width);
+      background: var(--siigo-blue);
+      overflow-x: hidden; overflow-y: auto;
+      z-index: 1030;
+      transition: width .2s ease;
+    }
+    .app-sidebar .brand {
+      color: #fff; font-weight: 700; font-size: 1.1rem;
+      padding: 1rem 1.25rem; display: flex; align-items: center; gap: .5rem;
+      white-space: nowrap;
+    }
+    .app-sidebar .nav-link {
+      color: rgba(255,255,255,.9);
+      padding: .65rem 1.25rem;
+      display: flex; align-items: center; gap: .6rem;
+      border-left: 3px solid transparent;
+      white-space: nowrap;
+    }
+    .app-sidebar .nav-link i { font-size: 1.05rem; width: 1.2rem; text-align: center; flex-shrink: 0; }
+    .app-sidebar .nav-link:hover,
+    .app-sidebar .nav-link.active {
+      background: rgba(255,255,255,.12);
+      border-left-color: #fff;
+      color: #fff;
+    }
+    .app-sidebar .nav-section-title {
+      color: rgba(255,255,255,.6);
+      font-size: .72rem; text-transform: uppercase; letter-spacing: .04em;
+      padding: 1rem 1.25rem .25rem;
+      white-space: nowrap;
+    }
+
+    /* ── Sidebar colapsado (solo íconos) ── */
+    body.sidebar-collapsed .app-sidebar { width: var(--sidebar-width-collapsed); }
+    body.sidebar-collapsed .app-sidebar .brand span,
+    body.sidebar-collapsed .app-sidebar .nav-link span,
+    body.sidebar-collapsed .app-sidebar .nav-section-title { display: none; }
+    body.sidebar-collapsed .app-sidebar .nav-link { justify-content: center; padding: .65rem; }
+    body.sidebar-collapsed .app-sidebar .brand { justify-content: center; padding: 1rem .25rem; }
+    body.sidebar-collapsed .app-main { margin-left: var(--sidebar-width-collapsed); }
+
+    /* ── Topbar + content ── */
+    .app-main { margin-left: var(--sidebar-width); transition: margin-left .2s ease; }
+    .app-topbar {
+      background: #fff; border-bottom: 1px solid #e6e8eb;
+      padding: .6rem 1.25rem;
+      display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+    }
+    .app-topbar .company-search { max-width: 340px; }
+    .app-content { padding: 1.5rem; }
+    #sidebarToggle { cursor: pointer; }
+
+    /* ── Accesos directos (tarjetas de icono) ── */
+    .shortcut-card {
+      display: flex; flex-direction: column; align-items: center; text-align: center;
+      gap: .6rem; padding: 1.5rem 1rem;
+      background: #fff; border: 1px solid #e6e8eb; border-radius: .5rem;
+      text-decoration: none; color: #333;
+      transition: box-shadow .15s ease, transform .15s ease;
+    }
+    .shortcut-card:hover { box-shadow: 0 .25rem .75rem rgba(0,0,0,.08); transform: translateY(-2px); color: #333; }
+    .shortcut-card .shortcut-icon {
+      width: 56px; height: 56px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(13,110,253,.1); color: var(--siigo-blue);
+      font-size: 1.5rem;
+    }
+
+    @media (max-width: 768px) {
+      .app-sidebar { transform: translateX(-100%); transition: transform .2s ease; width: var(--sidebar-width) !important; }
+      .app-sidebar.show { transform: translateX(0); }
+      .app-main, body.sidebar-collapsed .app-main { margin-left: 0; }
+    }
+  </style>
+</head>
+<body>
+<script>
+  // Aplicar el estado colapsado guardado antes de pintar, para evitar parpadeo.
+  if (localStorage.getItem('sidebarCollapsed') === '1') {
+    document.body.classList.add('sidebar-collapsed');
+  }
+</script>
+
+<!-- ══════════ Sidebar (menú azul estilo Siigo) ══════════ -->
+<aside class="app-sidebar" id="appSidebar">
+  <a class="brand" href="{% url 'billing:home' %}"><i class="bi bi-cloud-fill"></i><span>Sales Cloud</span></a>
+  <nav class="nav flex-column">
+    <a class="nav-link" href="{% url 'billing:home' %}" title="Inicio"><i class="bi bi-house-door-fill"></i><span>Inicio</span></a>
+
+    {% if user.is_authenticated %}
+    {% if user|has_group:'Analista de Compras' or user|has_group:'Administrador' %}
+    <div class="nav-section-title">Compras</div>
+    <a class="nav-link" href="{% url 'billing:brand_list' %}" title="Marcas"><i class="bi bi-tags-fill"></i><span>Marcas</span></a>
+    <a class="nav-link" href="{% url 'billing:productgroup_list' %}" title="Grupos"><i class="bi bi-collection-fill"></i><span>Grupos</span></a>
+    <a class="nav-link" href="{% url 'billing:supplier_list' %}" title="Proveedores"><i class="bi bi-truck"></i><span>Proveedores</span></a>
+    <a class="nav-link" href="{% url 'billing:product_list' %}" title="Servicios/Productos"><i class="bi bi-box-seam-fill"></i><span>Servicios/Productos</span></a>
+    <a class="nav-link" href="{% url 'purchasing:purchase_list' %}" title="Compras"><i class="bi bi-cart-plus-fill"></i><span>Compras</span></a>
+    <a class="nav-link" href="{% url 'creditos_compras:compra_list' %}" title="Créditos Compras"><i class="bi bi-credit-card-2-front-fill"></i><span>Créditos Compras</span></a>
+    {% endif %}
+
+    {% if user|has_group:'Vendedor' or user|has_group:'Administrador' %}
+    <div class="nav-section-title">Personas</div>
+    <a class="nav-link" href="{% url 'billing:customer_list' %}" title="Clientes"><i class="bi bi-people-fill"></i><span>Clientes</span></a>
+    <div class="nav-section-title">Transacciones</div>
+    <a class="nav-link" href="{% url 'billing:invoice_list' %}" title="Facturas"><i class="bi bi-receipt"></i><span>Facturas</span></a>
+    <a class="nav-link" href="{% url 'creditos_ventas:factura_list' %}" title="Créditos Ventas"><i class="bi bi-credit-card-2-front-fill"></i><span>Créditos Ventas</span></a>
+    {% endif %}
+
+    {% if user|has_group:'Cliente' %}
+    <div class="nav-section-title">Tienda</div>
+    <a class="nav-link" href="{% url 'storefront:catalog' %}" title="Catálogo"><i class="bi bi-shop"></i><span>Catálogo</span></a>
+    <a class="nav-link" href="{% url 'storefront:cart_detail' %}" title="Mi carrito"><i class="bi bi-cart3"></i><span>Mi carrito</span></a>
+    {% endif %}
+
+    {% if user|has_group:'Administrador' %}
+    <div class="nav-section-title">Seguridad</div>
+    <a class="nav-link" href="{% url 'security:user_list' %}" title="Usuarios"><i class="bi bi-person-badge-fill"></i><span>Usuarios</span></a>
+    <a class="nav-link" href="{% url 'security:group_list' %}" title="Roles"><i class="bi bi-diagram-3-fill"></i><span>Roles</span></a>
+    <a class="nav-link" href="{% url 'security:permission_list' %}" title="Permisos"><i class="bi bi-shield-lock-fill"></i><span>Permisos</span></a>
+    {% endif %}
+    {% endif %}
+  </nav>
+</aside>
+
+<!-- ══════════ Main ══════════ -->
+<div class="app-main">
+  <header class="app-topbar">
+    <div class="d-flex align-items-center gap-2">
+      <button class="btn btn-sm btn-outline-secondary d-md-none" type="button"
+              onclick="document.getElementById('appSidebar').classList.toggle('show')">
+        <i class="bi bi-list"></i>
+      </button>
+      <button class="btn btn-sm btn-outline-secondary d-none d-md-inline-flex" type="button"
+              id="sidebarToggle" title="Colapsar/expandir menú">
+        <i class="bi bi-layout-sidebar-inset"></i>
+      </button>
+      <span class="text-muted small">Empresa:</span>
+      <span class="fw-semibold">{{ request.session.company_name|default:"Mi Empresa" }}</span>
+    </div>
+    <div class="d-flex align-items-center gap-3">
+      {% if user.is_authenticated %}
+        <span class="text-muted">{{ user.username|upper }}</span>
+        <form method="post" action="{% url 'logout' %}" class="d-inline">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-sm btn-outline-secondary">Salir</button>
+        </form>
+      {% else %}
+        <a href="{% url 'login' %}" class="btn btn-sm btn-primary">Iniciar sesión</a>
+      {% endif %}
+    </div>
+  </header>
+
+  <div class="app-content">
+    {% if messages %}
+      {% for m in messages %}
+      <div class="alert alert-{{ m.tags }} alert-dismissible fade show">
+        {{ m }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+      {% endfor %}
+    {% endif %}
+
+    {% block content %}{% endblock %}
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  document.getElementById('sidebarToggle').addEventListener('click', function () {
+    const collapsed = document.body.classList.toggle('sidebar-collapsed');
+    localStorage.setItem('sidebarCollapsed', collapsed ? '1' : '0');
+  });
+</script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

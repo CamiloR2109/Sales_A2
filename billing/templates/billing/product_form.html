@@ -1,4 +1,4 @@
-{% extends 'billing/base.html' %}
+{% extends 'billing/base_sidebar.html' %}
 {% block title %}{{ title|default:"Product" }}{% endblock %}
 {% block content %}
 <div class="container py-4">
@@ -55,6 +55,16 @@
               {% for error in form.description.errors %}<div class="text-danger small mt-1"><i class="bi bi-x-circle me-1"></i>{{ error }}</div>{% endfor %}
             </div>
 
+            {# Tipo de ítem #}
+            <div class="mb-3">
+              <label for="id_item_type" class="form-label fw-semibold">
+                <i class="bi bi-box2 me-1 text-primary"></i>Tipo
+              </label>
+              {{ form.item_type }}
+              <div class="form-text">{{ form.item_type.help_text }}</div>
+              {% for error in form.item_type.errors %}<div class="text-danger small mt-1"><i class="bi bi-x-circle me-1"></i>{{ error }}</div>{% endfor %}
+            </div>
+
             {# Marca y Categoría (2 cols) #}
             <div class="row g-3 mb-3">
               <div class="col-md-6">
@@ -75,9 +85,9 @@
               </div>
             </div>
 
-            {# Precio y Stock (2 cols) #}
+            {# Precio, IVA y Stock #}
             <div class="row g-3 mb-3">
-              <div class="col-md-6">
+              <div class="col-md-4">
                 <label for="id_unit_price" class="form-label fw-semibold">
                   <i class="bi bi-currency-dollar me-1 text-success"></i>Precio Unitario
                 </label>
@@ -88,7 +98,18 @@
                 <div class="form-text">{{ form.unit_price.help_text }}</div>
                 {% for error in form.unit_price.errors %}<div class="text-danger small mt-1"><i class="bi bi-x-circle me-1"></i>{{ error }}</div>{% endfor %}
               </div>
-              <div class="col-md-6">
+              <div class="col-md-4">
+                <label for="id_tax_rate" class="form-label fw-semibold">
+                  <i class="bi bi-percent me-1 text-success"></i>IVA
+                </label>
+                <div class="input-group">
+                  {{ form.tax_rate }}
+                  <span class="input-group-text">%</span>
+                </div>
+                <div class="form-text">{{ form.tax_rate.help_text }}</div>
+                {% for error in form.tax_rate.errors %}<div class="text-danger small mt-1"><i class="bi bi-x-circle me-1"></i>{{ error }}</div>{% endfor %}
+              </div>
+              <div class="col-md-4">
                 <label for="id_stock" class="form-label fw-semibold">
                   <i class="bi bi-boxes me-1 text-warning"></i>Stock
                 </label>

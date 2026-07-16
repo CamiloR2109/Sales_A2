@@ -13,12 +13,12 @@ class ProductGroupAdmin(admin.ModelAdmin):
 
 @admin.register(Supplier)
 class SupplierAdmin(admin.ModelAdmin):
-    list_display = ['name', 'contact_name', 'email', 'is_active']
+    list_display = ['name', 'document_type', 'document_number', 'contact_name', 'email', 'is_active']
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ['name', 'brand', 'group', 'unit_price', 'stock']
-    list_filter = ['brand', 'group']
+    list_display = ['name', 'item_type', 'brand', 'group', 'unit_price', 'tax_rate', 'stock']
+    list_filter = ['brand', 'group', 'item_type']
     filter_horizontal = ['suppliers']
 
 class CustomerProfileInline(admin.StackedInline):
@@ -27,7 +27,7 @@ class CustomerProfileInline(admin.StackedInline):
 
 @admin.register(Customer)
 class CustomerAdmin(admin.ModelAdmin):
-    list_display = ['dni', 'last_name', 'first_name', 'email']
+    list_display = ['dni', 'document_type', 'last_name', 'first_name', 'email']
     inlines = [CustomerProfileInline]
 
 class InvoiceDetailInline(admin.TabularInline):
