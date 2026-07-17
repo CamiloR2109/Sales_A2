@@ -399,3 +399,5 @@ Este proyecto es de uso académico / educativo.
 <p align="center">
   Desarrollado con ❤️ usando Django 6.0
 </p>
+
+
