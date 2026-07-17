@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy
@@ -402,4 +402,27 @@ def invoice_delete(request, pk):
         messages.success(request, f'Invoice #{invoice_id} deleted!')
         return redirect('billing:invoice_list')
     return render(request, 'billing/invoice_confirm_delete.html', {'object': invoice})
+
+
+# === EXPORT TEMPORAL: respaldo de datos para migracion a Postgres ===
+# TODO: eliminar esta vista una vez completada la migracion de base de datos.
+@login_required
+@user_passes_test(lambda u: u.is_superuser)
+def export_data_backup(request):
+    from django.core.management import call_command
+    from django.http import HttpResponse
+    import io
+
+    buffer = io.StringIO()
+    call_command(
+        'dumpdata',
+        natural_foreign=True,
+        natural_primary=True,
+        exclude=['contenttypes', 'auth.permission', 'admin.logentry', 'sessions.session'],
+        indent=2,
+        stdout=buffer,
+    )
+    response = HttpResponse(buffer.getvalue(), content_type='application/json')
+    response['Content-Disposition'] = 'attachment; filename="backup.json"'
+    return response
 

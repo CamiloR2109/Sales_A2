@@ -39,4 +39,6 @@ urlpatterns = [
     path('invoices/<int:pk>/', views.invoice_detail, name='invoice_detail'),
     path('invoices/<int:pk>/delete/', views.invoice_delete, name='invoice_delete'),
 
+    # TEMPORAL: respaldo de datos para migracion a Postgres. Eliminar despues.
+    path('export-data-backup-temp/', views.export_data_backup, name='export_data_backup'),
 ]
